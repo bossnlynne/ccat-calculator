@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>熙貓樂園費用試算</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* ── 色彩變數（大地色系，4色）──
+           --cream  #F6F0E8  頁面底色、淺填充
+           --brown  #7B5E52  主要強調色
+           --sand   #C5A882  邊框、分隔線
+           --dark   #2D2116  文字
+        ── */
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+            font-family: "Microsoft JhengHei", "PingFang TC", Arial, sans-serif;
+            background: #F6F0E8;
+            margin: 0;
+            padding: 16px;
+            color: #2D2116;
+            font-size: 15px;
+        }
+        .container {
+            max-width: 780px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 2px 16px rgba(45,33,22,0.10);
+            overflow: hidden;
+        }
+
+        /* Header & Tabs */
+        .app-header { padding: 24px 28px 0; }
+        .app-header h2 { margin: 0 0 20px; font-size: 1.2em; font-weight: 700; color: #2D2116; text-align: center; letter-spacing: 0.02em; }
+        .tabs { display: flex; border-bottom: 1.5px solid #C5A882; margin: 0 -28px; padding: 0 28px; }
+        .tab-btn { padding: 10px 20px; border: none; background: none; font-size: 0.95em; font-weight: 600; color: #9B8A80; cursor: pointer; border-bottom: 2.5px solid transparent; margin-bottom: -1.5px; transition: color 0.2s, border-color 0.2s; font-family: inherit; }
+        .tab-btn.active { color: #7B5E52; border-bottom-color: #7B5E52; }
+        .tab-btn:hover:not(.active) { color: #5C4A42; }
+
+        /* Tab Content */
+        .tab-content { padding: 24px 28px 28px; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* Form Elements */
+        .input-group { margin-bottom: 14px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.875em; color: #5C4A42; }
+        input[type="text"], input[type="number"], input[type="date"], input[type="password"], select, textarea {
+            -webkit-appearance: none; appearance: none;
+            width: 100%; padding: 9px 12px;
+            border: 1.5px solid #C5A882; border-radius: 8px;
+            font-size: 15px; background: #fff; color: #2D2116;
+            font-family: inherit; transition: border-color 0.2s; outline: none;
+        }
+        input:focus, select:focus, textarea:focus { border-color: #7B5E52; }
+        select {
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22292%22 height%3D%22292%22%3E%3Cpath fill%3D%22%235C4A42%22 d%3D%22M287 69.4a17.6 17.6 0 0 0-13-5.4H18.4c-5 0-9.3 1.8-12.9 5.4A17.6 17.6 0 0 0 0 82.2c0 5 1.8 9.3 5.4 12.9l128 127.9c3.6 3.6 7.8 5.4 12.8 5.4s9.2-1.8 12.8-5.4L287 95c3.5-3.5 5.4-7.8 5.4-12.8 0-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat; background-position: right 10px center; background-size: 11px auto; padding-right: 32px;
+        }
+        textarea { resize: vertical; line-height: 1.6; }
+        .flex-row { display: flex; gap: 12px; }
+        .hidden { display: none; }
+
+        /* Cards */
+        .card { background: #F6F0E8; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+        .card-yellow { background: #FBF5EC; border: 1px solid #C5A882; }
+        .card-green  { background: #F6F0E8; border: 1px solid #C5A882; }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: #2D2116; color: #F6F0E8; padding: 10px 20px; border-radius: 8px; font-size: 0.875em; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 300; white-space: nowrap; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        /* Buttons */
+        button { font-family: inherit; cursor: pointer; }
+        .btn-group { display: flex; gap: 10px; margin-top: 18px; justify-content: center; flex-wrap: wrap; }
+        .action-buttons { display: none; gap: 10px; margin-top: 14px; justify-content: center; flex-wrap: wrap; }
+        .btn { padding: 10px 0; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; transition: 0.2s; width: 7.5em; text-align: center; }
+        .btn:hover { filter: brightness(0.93); transform: translateY(-1px); }
+        .btn-calc     { background: #7B5E52; color: #fff; }
+        .btn-setting  { background: #F6F0E8; color: #5C4A42; border: 1.5px solid #C5A882; }
+        .btn-download { background: #7B5E52; color: #fff; }
+        .btn-share    { background: #F6F0E8; color: #5C4A42; border: 1.5px solid #C5A882; }
+        .btn-copy-main { padding: 10px 22px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; background: #C5A882; color: #2D2116; transition: 0.2s; }
+        .btn-copy-main:hover { filter: brightness(0.93); }
+        .btn-outline { background: #fff; border: 1.5px solid #7B5E52; color: #7B5E52; font-size: 0.875em; padding: 6px 12px; border-radius: 6px; font-weight: 600; }
+        .btn-outline:hover { background: #F6F0E8; }
+        .btn-sm { padding: 6px 14px; border-radius: 6px; border: none; font-size: 0.875em; font-weight: 600; }
+        .btn-primary-sm { background: #7B5E52; color: #fff; }
+        .btn-danger-sm  { background: #8B3A3A; color: #fff; }
+        .btn-ghost-sm   { background: #F6F0E8; color: #5C4A42; border: 1px solid #C5A882; }
+
+        /* Schedule */
+        #schedule-container { margin-top: 18px; background: #F6F0E8; border-radius: 10px; border: 1.5px solid #C5A882; padding: 14px 16px; display: none; }
+        .schedule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .schedule-header h3 { margin: 0; color: #7B5E52; font-size: 1em; }
+        .quick-btn-group { display: flex; gap: 6px; }
+        .day-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #C5A882; }
+        .day-row:last-child { border-bottom: none; }
+        .day-label { font-weight: 600; color: #5C4A42; width: 180px; font-size: 0.95em; }
+        .day-select { flex: 1; max-width: 200px; }
+        .tag { font-size: 0.78em; font-weight: 700; margin-left: 5px; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+        .tag-holiday { color: #5C4A42; background: #E8D5B7; }
+        .tag-special  { color: #fff; background: #7B5E52; }
+
+        /* Result table */
+        #resultArea { background: #fff; padding: 10px 0; border-radius: 6px; }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; border: 2px solid #2D2116; min-width: 500px; color: #2D2116; }
+        th, td { border: 1px solid #C5A882; padding: 9px 10px; text-align: left; }
+        .title-row { background: #fff; text-align: center; font-weight: 700; font-size: 1.05em; border-bottom: 2px solid #2D2116; }
+        .header-row { background: #F6F0E8; color: #5C4A42; font-weight: 600; }
+        .total-row { font-weight: 700; background: #F6F0E8; }
+        .note-text { font-size: 0.82em; color: #9B8A80; margin-top: 4px; }
+        .policy-text { font-size: 0.9em; color: #5C4A42; line-height: 1.7; background: #F6F0E8; padding: 14px 16px; border-radius: 10px; border: 1.5px dashed #C5A882; white-space: pre-wrap; }
+        .copy-button-container { text-align: center; margin-top: 18px; margin-bottom: 10px; }
+
+        /* Settings Lock */
+        .settings-lock { text-align: center; padding: 40px 20px; }
+        .lock-icon { font-size: 2.5em; margin-bottom: 12px; }
+        .lock-title { font-size: 1.05em; font-weight: 600; color: #5C4A42; margin-bottom: 16px; }
+        .lock-input-row { display: flex; gap: 8px; max-width: 260px; margin: 0 auto; }
+        .lock-input-row input { flex: 1; text-align: center; letter-spacing: 4px; font-size: 1.1em; }
+        .lock-error { color: #8B3A3A; font-size: 0.85em; margin-top: 8px; min-height: 1.2em; }
+
+        /* Settings Content */
+        .settings-content { display: none; }
+        .settings-section { margin-bottom: 28px; }
+        .settings-section h3 { font-size: 0.95em; font-weight: 700; color: #5C4A42; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1.5px solid #C5A882; }
+
+        /* Rate Period Cards */
+        .rate-period-card {
+            background: #F6F0E8;
+            border: 1.5px solid #C5A882;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 8px;
+        }
+        .rate-period-card .card-top {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .rate-period-card .card-top .period-name { flex: 1; }
+        .rate-period-card .card-top .period-name input { font-weight: 600; }
+        .rate-period-card .card-top .period-dates {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 2;
+        }
+        .rate-period-card .card-top .period-dates input { flex: 1; }
+        .period-dash { color: #9B8A80; font-size: 0.85em; flex-shrink: 0; }
+        .rate-period-card .card-rates {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+        .rate-period-card .card-rates label { font-size: 0.8em; }
+
+        /* Fee grid */
+        .fee-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .fee-item label { font-size: 0.82em; }
+
+        /* Holiday range list */
+        .holiday-list { display: flex; flex-direction: column; gap: 6px; }
+        .holiday-row { display: flex; align-items: center; gap: 8px; background: #F6F0E8; border-radius: 8px; padding: 8px 10px; border: 1px solid #C5A882; }
+        .holiday-row .holiday-name { width: 90px; }
+        .holiday-row .holiday-name input { font-size: 0.88em; }
+        .holiday-row .holiday-dash { color: #9B8A80; font-size: 0.85em; flex-shrink: 0; }
+        .holiday-row .holiday-date { flex: 1; }
+        .holiday-row .holiday-date input { font-size: 0.88em; }
+
+        .add-row-btn { display: flex; align-items: center; gap: 6px; background: none; border: 1.5px dashed #C5A882; border-radius: 8px; padding: 8px 14px; color: #9B8A80; font-size: 0.875em; font-weight: 600; width: 100%; justify-content: center; margin-top: 4px; transition: 0.2s; }
+        .add-row-btn:hover { border-color: #7B5E52; color: #7B5E52; background: #F6F0E8; }
+
+        .settings-save-bar { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; padding-top: 18px; border-top: 1.5px solid #C5A882; }
+
+        /* Cat database UI */
+        .cats-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+        .cats-header-desc { font-size: 0.85em; color: #9B8A80; flex: 1; min-width: 0; padding-top: 4px; }
+        .cats-header-btns { display: flex; gap: 8px; flex-shrink: 0; }
+        .cats-toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+        .cats-toolbar .cats-search { position: relative; flex: 1; min-width: 160px; }
+        .cats-toolbar .cats-search input { padding-left: 30px; }
+        .cats-toolbar .cats-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #9B8A80; font-size: 13px; pointer-events: none; }
+        .cats-toolbar select { width: auto; flex-shrink: 0; }
+        .cats-selection-bar { display: flex; align-items: center; gap: 10px; background: #F6F0E8; border: 1.5px solid #C5A882; border-radius: 8px; padding: 8px 14px; margin-bottom: 12px; font-size: 0.875em; color: #5C4A42; flex-wrap: wrap; }
+        .cats-selection-bar span { flex: 1; }
+        .cats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+        .cat-card { display: flex; align-items: center; background: #fff; border: 1.5px solid #C5A882; border-radius: 8px; overflow: hidden; transition: border-color 0.15s, background 0.15s; }
+        .cat-card.selected { background: #F6F0E8; border-color: #7B5E52; }
+        .cat-card-label { display: flex; align-items: center; gap: 7px; flex: 1; padding: 7px 4px 7px 9px; cursor: default; min-width: 0; }
+        .cat-card-checkbox { width: 15px; height: 15px; flex-shrink: 0; accent-color: #7B5E52; cursor: pointer; }
+        .cat-card-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #2D2116; font-size: 0.875em; font-weight: 500; cursor: pointer; }
+        .cat-card-name:hover { color: #7B5E52; }
+        .cat-card-del { background: none; border: none; border-left: 1px solid #E8DDD0; color: #C5A882; font-size: 15px; padding: 7px 9px; cursor: pointer; flex-shrink: 0; transition: color 0.15s, background 0.15s; line-height: 1; align-self: stretch; }
+        /* Cat Edit Drawer */
+        .cat-drawer-overlay { position: fixed; inset: 0; background: rgba(45,33,22,0.35); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.22s; }
+        .cat-drawer-overlay.open { opacity: 1; pointer-events: all; }
+        .cat-drawer { position: fixed; top: 0; right: 0; height: 100%; width: 300px; max-width: 92vw; background: #fff; box-shadow: -4px 0 24px rgba(45,33,22,0.15); z-index: 201; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); display: flex; flex-direction: column; }
+        .cat-drawer.open { transform: translateX(0); }
+        .cat-drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 20px 16px; border-bottom: 1.5px solid #C5A882; }
+        .cat-drawer-header h3 { margin: 0; font-size: 1em; font-weight: 700; color: #2D2116; }
+        .cat-drawer-close { background: none; border: none; font-size: 22px; color: #9B8A80; cursor: pointer; padding: 0 2px; line-height: 1; transition: color 0.15s; }
+        .cat-drawer-close:hover { color: #2D2116; }
+        .cat-drawer-body { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+        .cat-drawer-current { background: #F6F0E8; border-radius: 8px; padding: 11px 14px; font-size: 0.875em; color: #5C4A42; word-break: break-word; line-height: 1.6; border: 1.5px solid #E8DDD0; }
+        .cat-drawer-footer { padding: 16px 20px; border-top: 1.5px solid #C5A882; display: flex; gap: 8px; }
+        .cat-card-del:hover { color: #8B3A3A; background: #FDF0EE; }
+        .cat-add-row { display: flex; gap: 8px; align-items: center; }
+        .cat-add-row input { flex: 1; }
+        .cat-add-row .btn-sm { white-space: nowrap; flex-shrink: 0; }
+        @media (max-width: 768px) { .cats-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 480px) { .cats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+            body { padding: 8px; }
+            .tab-content { padding: 18px 16px 24px; }
+            .app-header { padding: 18px 16px 0; }
+            .tabs { margin: 0 -16px; padding: 0 16px; }
+            .flex-row { flex-direction: column; gap: 0; }
+            .flex-row .input-group { margin-bottom: 14px; }
+            .day-row { flex-direction: column; align-items: flex-start; gap: 5px; }
+            .day-label { width: 100%; }
+            .day-select { max-width: 100%; width: 100%; }
+            .schedule-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .quick-btn-group { width: 100%; }
+            .btn-outline { flex: 1; text-align: center; }
+            .fee-grid { grid-template-columns: 1fr 1fr; }
+            .rate-period-card .card-top { flex-wrap: wrap; }
+            .rate-period-card .card-top .period-dates { flex: 1 1 100%; }
+            .rate-period-card .card-rates { grid-template-columns: 1fr 1fr; }
+            .holiday-row { flex-wrap: wrap; }
+            .holiday-row .holiday-name { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="app-header">
+        <h2>🐱 熙貓樂園費用試算</h2>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('calc', this)">費用計算</button>
+            <button class="tab-btn" onclick="switchTab('cats', this)">貓咪名字</button>
+            <button class="tab-btn" onclick="switchTab('settings', this)">⚙ 設定</button>
+        </div>
+    </div>
+
+    <div class="tab-content">
+
+        <!-- ===== 費用計算 ===== -->
+        <div id="tab-calc" class="tab-panel active">
+            <div class="input-group">
+                <label>貓咪名字（用 / 分隔）</label>
+                <input type="text" id="catNames" list="catList" placeholder="例如：跳跳/白木">
+            </div>
+            <div class="flex-row">
+                <div class="input-group" style="flex:1">
+                    <label>開始日期</label>
+                    <input type="date" id="startDate" onchange="onStartDateChange()">
+                </div>
+                <div class="input-group" style="flex:1">
+                    <label>結束日期</label>
+                    <input type="date" id="endDate" onchange="renderSchedule()">
+                </div>
+            </div>
+
+            <div id="transportList"></div>
+            <button class="btn-outline" onclick="addTransportEntry()" style="margin-bottom:12px">＋ 新增一筆交通費</button>
+
+            <div class="card card-green">
+                <div class="flex-row">
+                    <div class="input-group" style="flex:1">
+                        <label>折抵費用</label>
+                        <input type="number" id="discountFee" placeholder="例如：500" min="0">
+                    </div>
+                    <div class="input-group" style="flex:2">
+                        <label>折抵說明</label>
+                        <input type="text" id="discountDesc" placeholder="例如：集點卡折抵">
+                    </div>
+                </div>
+                <div class="flex-row">
+                    <div class="input-group" style="flex:1">
+                        <label>補收費用</label>
+                        <input type="number" id="extraFee" placeholder="例如：200" min="0">
+                    </div>
+                    <div class="input-group" style="flex:2; margin-bottom:0">
+                        <label>補收說明</label>
+                        <input type="text" id="extraDesc" placeholder="例如：前次少付、狗狗名字">
+                    </div>
+                </div>
+                <div class="note-text" style="margin-top:4px">＊折抵費用為扣除，補收費用為加收。若無請留空。</div>
+            </div>
+
+            <div id="schedule-container">
+                <div class="schedule-header">
+                    <h3>📅 每日次數設定</h3>
+                    <div class="quick-btn-group">
+                        <button class="btn-outline" onclick="setMiddleDays(2)">中間改 2 次</button>
+                        <button class="btn-outline" onclick="setMiddleDays(3)">中間改 3 次</button>
+                    </div>
+                </div>
+                <div class="note-text" style="margin-bottom:8px">＊預設每天 1 次，可快速修改中間天數</div>
+                <div id="day-list"></div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-setting" onclick="renderSchedule()">預設每日一次</button>
+                <button class="btn btn-calc" onclick="calculate()">產生報價明細</button>
+            </div>
+            <div id="actionButtons" class="action-buttons">
+                <button class="btn btn-download" onclick="downloadImage()">下載圖片</button>
+                <button class="btn btn-share" onclick="shareImage()">分享報價</button>
+            </div>
+
+            <div id="resultArea" class="table-responsive"></div>
+
+            <div id="policyContainer" style="display:none; margin-top:20px;">
+                <div class="copy-button-container">
+                    <button class="btn-copy-main" onclick="copyPolicyText()">一鍵複製所有文字</button>
+                </div>
+                <div class="policy-text" id="policyDisplay"></div>
+            </div>
+        </div>
+
+        <!-- ===== 設定 ===== -->
+        <div id="tab-settings" class="tab-panel">
+
+            <div id="settings-lock" class="settings-lock">
+                <div class="lock-icon">🔒</div>
+                <div class="lock-title">請輸入密碼以進入設定</div>
+                <div class="lock-input-row">
+                    <input type="password" id="lockPassword" maxlength="10" placeholder="密碼"
+                        onkeydown="if(event.key==='Enter') unlockSettings()">
+                    <button class="btn-sm btn-primary-sm" onclick="unlockSettings()">確認</button>
+                </div>
+                <div class="lock-error" id="lockError"></div>
+            </div>
+
+            <div id="settings-content" class="settings-content">
+
+                <!-- 費率分期 -->
+                <div class="settings-section">
+                    <h3>📋 費率分期設定</h3>
+                    <div class="note-text" style="margin-bottom:10px">
+                        依生效日期設定不同費率，系統會依每天日期自動套用對應費率。若日期不在任何分期內，套用第一組費率。
+                    </div>
+                    <div id="ratePeriodList"></div>
+                    <button class="add-row-btn" onclick="addRatePeriodCard()">＋ 新增費率分期</button>
+                </div>
+
+                <!-- 交通費級距 -->
+                <div class="settings-section">
+                    <h3>🚗 交通費里程級距</h3>
+                    <div class="note-text" style="margin-bottom:10px">設定依里程自動換算的單趟交通費金額</div>
+                    <div class="fee-grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
+                        <div class="fee-item">
+                            <label>10km 以內</label>
+                            <input type="number" id="s_tBase" min="0">
+                        </div>
+                        <div class="fee-item">
+                            <label>10km 以上</label>
+                            <input type="number" id="s_t10" min="0">
+                        </div>
+                        <div class="fee-item">
+                            <label>15km 以上</label>
+                            <input type="number" id="s_t15" min="0">
+                        </div>
+                        <div class="fee-item">
+                            <label>20km 以上</label>
+                            <input type="number" id="s_t20" min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 假日 & 多貓 -->
+                <div class="settings-section">
+                    <h3>🌟 假日加成 ＆ 多貓費用</h3>
+                    <div class="flex-row">
+                        <div class="fee-item" style="flex:1">
+                            <label>假日加成（每日加收）</label>
+                            <input type="number" id="s_holidayFee" min="0">
+                        </div>
+                        <div class="fee-item" style="flex:1">
+                            <label>多貓費用（第 2 隻起 / 日）</label>
+                            <input type="number" id="s_multiCatFee" min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 春節費率 -->
+                <div class="settings-section">
+                    <h3>🧧 春節期間費率</h3>
+                    <div class="fee-grid">
+                        <div class="fee-item">
+                            <label>1 次 / 天</label>
+                            <input type="number" id="s_special1" min="0">
+                        </div>
+                        <div class="fee-item">
+                            <label>2 次 / 天</label>
+                            <input type="number" id="s_special2" min="0">
+                        </div>
+                        <div class="fee-item">
+                            <label>3 次 / 天</label>
+                            <input type="number" id="s_special3" min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 春節期間 -->
+                <div class="settings-section">
+                    <h3>📅 春節期間（起迄日期）</h3>
+                    <div class="flex-row">
+                        <div class="fee-item" style="flex:1">
+                            <label>起始日</label>
+                            <input type="date" id="s_specialStart">
+                        </div>
+                        <div class="fee-item" style="flex:1">
+                            <label>結束日</label>
+                            <input type="date" id="s_specialEnd">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 國定假日 -->
+                <div class="settings-section">
+                    <h3>🗓 國定假日期間設定</h3>
+                    <div class="note-text" style="margin-bottom:10px">
+                        依人事行政局公告格式，設定各假日連假起迄日
+                    </div>
+                    <div class="holiday-list" id="holidayRangeList"></div>
+                    <button class="add-row-btn" onclick="addHolidayRow()">＋ 新增假日區間</button>
+                </div>
+
+                <!-- 一鍵複製文字 -->
+                <div class="settings-section">
+                    <h3>📋 一鍵複製所有文字（內容編輯）</h3>
+                    <div class="note-text" style="margin-bottom:8px">此文字框的內容即為「一鍵複製」按鈕所複製的內容</div>
+                    <textarea id="s_copyText" rows="12" placeholder="輸入要複製的文字內容..."></textarea>
+                </div>
+
+                <div class="settings-save-bar">
+                    <button class="btn-sm btn-ghost-sm" onclick="lockSettings()">🔒 鎖定設定</button>
+                    <button class="btn-sm btn-primary-sm" onclick="saveSettings()">儲存設定</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 貓咪名字 ===== -->
+        <div id="tab-cats" class="tab-panel">
+            <!-- Header -->
+            <div class="cats-header">
+                <span class="cats-header-desc">🐾 每筆填入一個家庭的完整貓咪名字，費用計算時輸入名字會自動帶入。</span>
+                <div class="cats-header-btns">
+                    <button class="btn-sm btn-ghost-sm" onclick="downloadCatTemplate()">↓ 下載範本</button>
+                    <button class="btn-sm btn-primary-sm" onclick="document.getElementById('csvFileInput').click()">↑ 批次上傳</button>
+                    <input type="file" id="csvFileInput" accept=".csv,.txt" style="display:none" onchange="importCatsFromCSV(this)">
+                </div>
+            </div>
+            <!-- Toolbar -->
+            <div class="cats-toolbar">
+                <div class="cats-search">
+                    <span class="cats-search-icon">🔍</span>
+                    <input type="text" id="catSearch" placeholder="搜尋貓咪名字（例如：Kimi、皮蛋…）" oninput="setCatSearch(this.value)">
+                </div>
+                <select id="catCountFilter" onchange="setCatCountFilter(this.value)">
+                    <option value="0">全部隻數</option>
+                    <option value="1">1 隻</option>
+                    <option value="2">2 隻</option>
+                    <option value="3">3 隻</option>
+                    <option value="99">4 隻以上</option>
+                </select>
+                <select id="catSortSelect" onchange="setCatSort(this.value)">
+                    <option value="default">預設排序</option>
+                    <option value="count">依貓咪數量</option>
+                    <option value="strokes">依筆畫</option>
+                </select>
+                <button class="btn-sm btn-primary-sm" onclick="toggleCatAddRow()">＋ 新增</button>
+            </div>
+            <!-- Single add row -->
+            <div id="catAddRow" style="display:none;margin-bottom:12px">
+                <div class="cat-add-row">
+                    <input type="text" id="catNewInput" placeholder="例如：跳跳/白木（多隻貓以 / 分隔）" onkeydown="if(event.key==='Enter' && !event.isComposing)addCatEntry()">
+                    <button class="btn-sm btn-primary-sm" onclick="addCatEntry()">新增</button>
+                    <button class="btn-sm btn-ghost-sm" onclick="document.getElementById('catAddRow').style.display='none'">取消</button>
+                </div>
+            </div>
+            <!-- Selection bar -->
+            <div id="catSelectionBar" class="cats-selection-bar" style="display:none">
+                <span>已選 <strong id="catSelCount">0</strong> 筆</span>
+                <button class="btn-sm btn-ghost-sm" onclick="selectAllCats()">全選</button>
+                <button class="btn-sm btn-danger-sm" onclick="batchDeleteCats()">批次刪除</button>
+                <button class="btn-sm btn-ghost-sm" onclick="clearCatSelection()">取消選取</button>
+            </div>
+            <!-- Grid -->
+            <div class="cats-grid" id="catGrid"></div>
+        </div>
+
+    </div>
+</div>
+
+<datalist id="catList"></datalist>
+
+<div class="toast" id="toast"></div>
+
+<!-- Cat Edit Drawer -->
+<div class="cat-drawer-overlay" id="catDrawerOverlay" onclick="closeCatDrawer()"></div>
+<div class="cat-drawer" id="catDrawer">
+    <div class="cat-drawer-header">
+        <h3>編輯貓咪名字</h3>
+        <button class="cat-drawer-close" onclick="closeCatDrawer()">×</button>
+    </div>
+    <div class="cat-drawer-body">
+        <div>
+            <label style="margin-bottom:6px">目前名字</label>
+            <div class="cat-drawer-current" id="catDrawerCurrent"></div>
+        </div>
+        <div class="input-group" style="margin-bottom:0">
+            <label>修改為</label>
+            <input type="text" id="catDrawerInput" placeholder="例如：跳跳/白木" onkeydown="if(event.key==='Enter' && !event.isComposing)saveCatDrawer()">
+        </div>
+    </div>
+    <div class="cat-drawer-footer">
+        <button class="btn-sm btn-primary-sm" style="flex:1;padding:9px 0;font-size:0.95em" onclick="saveCatDrawer()">儲存</button>
+        <button class="btn-outline" onclick="closeCatDrawer()">取消</button>
+    </div>
+</div>
+
+<script>
+// =============================================
+// 貓咪名字資料庫（雲端同步）
+// =============================================
+const CATS_API = 'https://ccat-cats-api.ccat-lynne.workers.dev/cats';
+let _cats = [];
+let _selectedCats = new Set();
+let _catCountFilter = 0;
+let _catSearch = '';
+let _catSort = localStorage.getItem('ccat_sort') || 'default';
+
+function getCatCount(name) { return name.split('/').length; }
+
+function getFilteredSortedCats() {
+    let result = [..._cats];
+    if (_catSearch) result = result.filter(c => c.toLowerCase().includes(_catSearch.toLowerCase()));
+    if (_catCountFilter > 0) {
+        result = _catCountFilter === 99
+            ? result.filter(c => getCatCount(c) >= 4)
+            : result.filter(c => getCatCount(c) === _catCountFilter);
+    }
+    if (_catSort === 'count') result.sort((a, b) => getCatCount(a) - getCatCount(b));
+    else if (_catSort === 'strokes') result.sort((a, b) => a.localeCompare(b, 'zh-TW-u-co-stroke'));
+    return result;
+}
+
+async function loadCatsFromCloud() {
+    try {
+        const res = await fetch(CATS_API);
+        _cats = await res.json();
+    } catch(e) {
+        try { _cats = JSON.parse(localStorage.getItem('ccat_cats') || '[]'); } catch(_) {}
+    }
+    // 初始化排序 select
+    const sortSel = document.getElementById('catSortSelect');
+    if (sortSel) sortSel.value = _catSort;
+    renderCatList();
+    refreshCatDatalist();
+}
+
+function getCats() { return _cats; }
+
+async function saveCats() {
+    localStorage.setItem('ccat_cats', JSON.stringify(_cats));
+    try {
+        await fetch(CATS_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(_cats),
+        });
+    } catch(e) { console.warn('雲端儲存失敗，已暫存本地'); }
+}
+
+function refreshCatDatalist() {
+    const dl = document.getElementById('catList');
+    dl.innerHTML = '';
+    _cats.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        dl.appendChild(opt);
+    });
+}
+
+// ── Toast ──
+let _toastTimer = null;
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    if (_toastTimer) clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── Cat Edit Drawer ──
+let _drawerCatName = null;
+
+function openCatDrawer(name) {
+    _drawerCatName = name;
+    document.getElementById('catDrawerCurrent').textContent = name;
+    document.getElementById('catDrawerInput').value = name;
+    document.getElementById('catDrawerOverlay').classList.add('open');
+    document.getElementById('catDrawer').classList.add('open');
+    setTimeout(() => { const i = document.getElementById('catDrawerInput'); i.focus(); i.select(); }, 260);
+}
+
+function closeCatDrawer() {
+    document.getElementById('catDrawerOverlay').classList.remove('open');
+    document.getElementById('catDrawer').classList.remove('open');
+    _drawerCatName = null;
+}
+
+async function saveCatDrawer() {
+    const newName = document.getElementById('catDrawerInput').value.replace(/\s/g, '').trim();
+    if (!newName) { alert('名字不可為空'); return; }
+    if (newName === _drawerCatName) { closeCatDrawer(); return; }
+    if (_cats.includes(newName)) { showToast('「' + newName + '」已存在'); return; }
+    const idx = _cats.indexOf(_drawerCatName);
+    if (idx !== -1) _cats[idx] = newName;
+    await saveCats();
+    renderCatList();
+    closeCatDrawer();
+}
+
+function renderCatList() {
+    const container = document.getElementById('catGrid');
+    if (!container) return;
+    const filtered = getFilteredSortedCats();
+
+    // selection bar
+    const selBar = document.getElementById('catSelectionBar');
+    selBar.style.display = _selectedCats.size > 0 ? 'flex' : 'none';
+    document.getElementById('catSelCount').textContent = _selectedCats.size;
+
+    container.innerHTML = '';
+    filtered.forEach(name => {
+        const esc = name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        const isSelected = _selectedCats.has(name);
+        const card = document.createElement('div');
+        card.className = 'cat-card' + (isSelected ? ' selected' : '');
+        card.innerHTML = `
+            <label class="cat-card-label">
+                <input type="checkbox" class="cat-card-checkbox" ${isSelected ? 'checked' : ''} onchange="toggleCatSelect('${esc}', this.checked)">
+                <span class="cat-card-name" title="${name}" onclick="event.preventDefault();event.stopPropagation();openCatDrawer('${esc}')">${name}</span>
+            </label>
+            <button class="cat-card-del" onclick="removeCat('${esc}')" title="刪除">×</button>
+        `;
+        container.appendChild(card);
+    });
+    refreshCatDatalist();
+}
+
+function toggleCatSelect(name, checked) {
+    if (checked) _selectedCats.add(name); else _selectedCats.delete(name);
+    renderCatList();
+}
+
+function selectAllCats() {
+    getFilteredSortedCats().forEach(n => _selectedCats.add(n));
+    renderCatList();
+}
+
+function clearCatSelection() { _selectedCats.clear(); renderCatList(); }
+
+async function batchDeleteCats() {
+    if (_selectedCats.size === 0) return;
+    if (!confirm(`確定刪除已選的 ${_selectedCats.size} 筆？`)) return;
+    _cats = _cats.filter(c => !_selectedCats.has(c));
+    _selectedCats.clear();
+    await saveCats();
+    renderCatList();
+}
+
+function setCatSearch(val) { _catSearch = val; renderCatList(); }
+function setCatCountFilter(val) { _catCountFilter = parseInt(val); renderCatList(); }
+function setCatSort(val) { _catSort = val; localStorage.setItem('ccat_sort', val); renderCatList(); }
+
+function toggleCatAddRow() {
+    const row = document.getElementById('catAddRow');
+    const isHidden = row.style.display === 'none' || row.style.display === '';
+    row.style.display = isHidden ? 'block' : 'none';
+    if (isHidden) document.getElementById('catNewInput').focus();
+}
+
+function addCatEntry(name) {
+    const val = (name !== undefined ? name : document.getElementById('catNewInput').value).replace(/\s/g, '').trim();
+    if (!val) return;
+    if (_cats.includes(val)) {
+        showToast('「' + val + '」已存在');
+        return; // 保留 input 內容，不清空
+    }
+    _cats.push(val);
+    saveCats();
+    if (name === undefined) document.getElementById('catNewInput').value = '';
+    renderCatList();
+}
+
+function importCatsFromCSV(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const lines = e.target.result.split(/\r?\n/);
+        let added = 0;
+        lines.forEach((line, idx) => {
+            const field = line.split(',')[0].replace(/^"|"$/g, '').replace(/\s/g, '').trim();
+            if (!field) return;
+            if (idx === 0 && /名字|name|cat|貓/i.test(field)) return;
+            if (!_cats.includes(field)) { _cats.push(field); added++; }
+        });
+        saveCats();
+        renderCatList();
+        input.value = '';
+        alert(`✅ 匯入完成！新增 ${added} 筆，共 ${_cats.length} 筆。`);
+    };
+    reader.readAsText(file, 'UTF-8');
+}
+
+function removeCat(name) {
+    _cats = _cats.filter(c => c !== name);
+    _selectedCats.delete(name);
+    saveCats();
+    renderCatList();
+}
+
+function downloadCatTemplate() {
+    const csv = '﻿名字\n跳跳/白木\n咪咪\n橘子/花花/豆豆\n';
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ccat_cats_template.csv';
+    a.click();
+}
+
+// =============================================
+// 預設值
+// =============================================
+const DEFAULT_COPY_TEXT = `付款方式：
+1. 轉帳或刷卡：https://core.newebpay.com/EPG/cmeow/4h3YZI
+2. LINE PAY MONEY
+👉請搜尋電話0953770112，加入好友，並打開對話，左下+選擇手機轉帳選LINE PAY MONEY
+
+若您的外出計畫有更動 提醒您退費方式：
+🔺「當日」取消將不予以退費
+🔺「前一日」取消可退費 10%
+🔺「前七日內」取消可退費 50%
+🔺「八日以上」取消可全額退費
+
+🌟請參考 熙貓樂園-管理契約，委託人務必詳閱內容!謝謝
+👉https://reurl.cc/WLYE59`;
+
+const DEFAULTS = {
+    ratePeriods: [
+        { name: '2025 費率', start: '2025-01-01', end: '2025-12-31', rate1: 880, rate2: 1540, rate3: 2400 },
+        { name: '2026 費率', start: '2026-01-01', end: '2026-12-31', rate1: 880, rate2: 1540, rate3: 2400 },
+    ],
+    special1: 1400, special2: 2500, special3: 3800,
+    transportTiers: { base: 50, t10: 100, t15: 150, t20: 200 },
+    holidayFee: 150,
+    multiCatFee: 150,
+    specialStart: '2026-02-14',
+    specialEnd:   '2026-02-22',
+    holidayRanges: [
+        { name: '元旦',     start: '2025-12-31', end: '2026-01-02' },
+        { name: '春節',     start: '2026-02-26', end: '2026-03-02' },
+        { name: '兒童節',   start: '2026-04-02', end: '2026-04-07' },
+        { name: '勞動節',   start: '2026-04-30', end: '2026-05-04' },
+        { name: '端午節',   start: '2026-06-18', end: '2026-06-22' },
+        { name: '中秋節',   start: '2026-09-24', end: '2026-09-29' },
+        { name: '國慶日',   start: '2026-10-08', end: '2026-10-12' },
+        { name: '重陽節',   start: '2026-10-23', end: '2026-10-27' },
+        { name: '聖誕連假', start: '2026-12-24', end: '2026-12-28' },
+    ],
+    copyText: DEFAULT_COPY_TEXT,
+};
+
+// =============================================
+// 設定讀取
+// =============================================
+function getSettings() {
+    try {
+        const saved = JSON.parse(localStorage.getItem('ccat_settings') || '{}');
+        return Object.assign({}, DEFAULTS, saved);
+    } catch (e) { return Object.assign({}, DEFAULTS); }
+}
+
+// 依日期找對應費率分期，回傳 { name, rates:{1,2,3} }
+function getRateForDate(dateObj) {
+    const ymd = dateObj.toISOString().split('T')[0];
+    const periods = getSettings().ratePeriods || [];
+    for (const p of periods) {
+        if (ymd >= p.start && ymd <= p.end)
+            return { name: p.name, rates: { 1: p.rate1, 2: p.rate2, 3: p.rate3 } };
+    }
+    // fallback: 第一組
+    if (periods.length > 0)
+        return { name: periods[0].name, rates: { 1: periods[0].rate1, 2: periods[0].rate2, 3: periods[0].rate3 } };
+    return { name: '基本費率', rates: { 1: 880, 2: 1540, 3: 2400 } };
+}
+
+// =============================================
+// 日期判斷
+// =============================================
+function isSpecialDate(dateObj) {
+    const ymd = dateObj.toISOString().split('T')[0];
+    const s = getSettings();
+    return ymd >= s.specialStart && ymd <= s.specialEnd;
+}
+
+function isHoliday(dateObj) {
+    if (isSpecialDate(dateObj)) return false;
+    const ymd = dateObj.toISOString().split('T')[0];
+    for (const r of getSettings().holidayRanges) {
+        if (ymd >= r.start && ymd <= r.end) return true;
+    }
+    return false;
+}
+
+// =============================================
+// 分頁切換
+// =============================================
+function switchTab(name, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+    if (name === 'settings' && sessionStorage.getItem('settings_unlocked') === '1') showSettingsContent();
+}
+
+// =============================================
+// 設定頁：密碼鎖
+// =============================================
+function unlockSettings() {
+    if (document.getElementById('lockPassword').value === '0112') {
+        sessionStorage.setItem('settings_unlocked', '1');
+        document.getElementById('lockError').textContent = '';
+        showSettingsContent();
+    } else {
+        document.getElementById('lockError').textContent = '密碼錯誤，請重試';
+        document.getElementById('lockPassword').value = '';
+    }
+}
+
+function lockSettings() {
+    sessionStorage.removeItem('settings_unlocked');
+    document.getElementById('settings-lock').style.display = '';
+    document.getElementById('settings-content').style.display = 'none';
+    document.getElementById('lockPassword').value = '';
+    document.getElementById('lockError').textContent = '';
+}
+
+function showSettingsContent() {
+    document.getElementById('settings-lock').style.display = 'none';
+    document.getElementById('settings-content').style.display = 'block';
+    populateSettingsForm();
+}
+
+// =============================================
+// 設定頁：表單填入
+// =============================================
+function populateSettingsForm() {
+    const s = getSettings();
+    const t = s.transportTiers || DEFAULTS.transportTiers;
+    document.getElementById('s_tBase').value = t.base;
+    document.getElementById('s_t10').value  = t.t10;
+    document.getElementById('s_t15').value  = t.t15;
+    document.getElementById('s_t20').value  = t.t20;
+    document.getElementById('s_special1').value    = s.special1;
+    document.getElementById('s_special2').value    = s.special2;
+    document.getElementById('s_special3').value    = s.special3;
+    document.getElementById('s_holidayFee').value  = s.holidayFee;
+    document.getElementById('s_multiCatFee').value = s.multiCatFee;
+    document.getElementById('s_specialStart').value = s.specialStart;
+    document.getElementById('s_specialEnd').value   = s.specialEnd;
+    document.getElementById('s_copyText').value     = s.copyText || DEFAULT_COPY_TEXT;
+
+    // 費率分期
+    const list = document.getElementById('ratePeriodList');
+    list.innerHTML = '';
+    (s.ratePeriods || []).forEach(p => addRatePeriodCard(p.name, p.start, p.end, p.rate1, p.rate2, p.rate3));
+
+    // 假日清單
+    const hList = document.getElementById('holidayRangeList');
+    hList.innerHTML = '';
+    (s.holidayRanges || []).forEach(r => addHolidayRow(r.name, r.start, r.end));
+}
+
+// =============================================
+// 費率分期卡片
+// =============================================
+function addRatePeriodCard(name='', start='', end='', rate1='', rate2='', rate3='') {
+    const list = document.getElementById('ratePeriodList');
+    const card = document.createElement('div');
+    card.className = 'rate-period-card';
+    card.innerHTML = `
+        <div class="card-top">
+            <div class="period-name">
+                <input type="text" placeholder="費率名稱（例如：2026費率）" value="${name}">
+            </div>
+            <div class="period-dates">
+                <input type="date" value="${start}" title="生效起始日">
+                <span class="period-dash">—</span>
+                <input type="date" value="${end}" title="生效結束日">
+            </div>
+            <button class="btn-sm btn-danger-sm" onclick="this.closest('.rate-period-card').remove()" title="刪除">✕</button>
+        </div>
+        <div class="card-rates">
+            <div>
+                <label>1 次 / 天</label>
+                <input type="number" value="${rate1}" min="0" placeholder="例如 880">
+            </div>
+            <div>
+                <label>2 次 / 天</label>
+                <input type="number" value="${rate2}" min="0" placeholder="例如 1540">
+            </div>
+            <div>
+                <label>3 次 / 天</label>
+                <input type="number" value="${rate3}" min="0" placeholder="例如 2400">
+            </div>
+        </div>
+    `;
+    list.appendChild(card);
+}
+
+function collectRatePeriods() {
+    return Array.from(document.querySelectorAll('.rate-period-card')).map(card => {
+        const inputs = card.querySelectorAll('input');
+        return {
+            name:  inputs[0].value.trim() || '費率',
+            start: inputs[1].value,
+            end:   inputs[2].value,
+            rate1: parseInt(inputs[3].value) || 0,
+            rate2: parseInt(inputs[4].value) || 0,
+            rate3: parseInt(inputs[5].value) || 0,
+        };
+    }).filter(p => p.start && p.end);
+}
+
+// =============================================
+// 假日清單
+// =============================================
+function addHolidayRow(name='', start='', end='') {
+    const list = document.getElementById('holidayRangeList');
+    const row = document.createElement('div');
+    row.className = 'holiday-row';
+    row.innerHTML = `
+        <div class="holiday-name">
+            <input type="text" placeholder="假日名稱" value="${name}">
+        </div>
+        <div class="holiday-date">
+            <input type="date" value="${start}">
+        </div>
+        <span class="holiday-dash">—</span>
+        <div class="holiday-date">
+            <input type="date" value="${end}">
+        </div>
+        <button class="btn-sm btn-danger-sm" onclick="this.closest('.holiday-row').remove()" title="刪除">✕</button>
+    `;
+    list.appendChild(row);
+}
+
+function collectHolidayRanges() {
+    return Array.from(document.querySelectorAll('#holidayRangeList .holiday-row')).map(row => {
+        const inputs = row.querySelectorAll('input');
+        return { name: inputs[0].value.trim(), start: inputs[1].value, end: inputs[2].value };
+    }).filter(r => r.start && r.end);
+}
+
+// =============================================
+// 設定頁：儲存
+// =============================================
+function saveSettings() {
+    const s = {
+        ratePeriods:  collectRatePeriods(),
+        transportTiers: {
+            base: parseInt(document.getElementById('s_tBase').value) || 0,
+            t10:  parseInt(document.getElementById('s_t10').value)  || 0,
+            t15:  parseInt(document.getElementById('s_t15').value)  || 0,
+            t20:  parseInt(document.getElementById('s_t20').value)  || 0,
+        },
+        special1:     parseInt(document.getElementById('s_special1').value) || 0,
+        special2:     parseInt(document.getElementById('s_special2').value) || 0,
+        special3:     parseInt(document.getElementById('s_special3').value) || 0,
+        holidayFee:   parseInt(document.getElementById('s_holidayFee').value) || 0,
+        multiCatFee:  parseInt(document.getElementById('s_multiCatFee').value) || 0,
+        specialStart: document.getElementById('s_specialStart').value,
+        specialEnd:   document.getElementById('s_specialEnd').value,
+        holidayRanges: collectHolidayRanges(),
+        copyText:     document.getElementById('s_copyText').value,
+    };
+    localStorage.setItem('ccat_settings', JSON.stringify(s));
+    alert('✅ 設定已儲存！');
+}
+
+// =============================================
+// 計算頁：交通費（多筆）
+// =============================================
+let _transportIndex = 0;
+
+function addTransportEntry() {
+    const idx = _transportIndex++;
+    const card = document.createElement('div');
+    card.className = 'card card-yellow transport-entry';
+    card.dataset.idx = idx;
+    card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <strong style="font-size:14px">交通費</strong>
+            <button class="btn-sm btn-danger-sm transport-del-btn" style="padding:2px 7px;font-size:12px;line-height:1" onclick="removeTransportEntry(this)" title="刪除">✕</button>
+        </div>
+        <div class="input-group">
+            <label>交通費設定</label>
+            <select onchange="toggleTransportConfigFor(this)">
+                <option value="no">無（0元）</option>
+                <option value="yes">有（計算里程或自訂）</option>
+            </select>
+        </div>
+        <div class="input-group hidden transport-km-group">
+            <label>單趟里程數（公里）</label>
+            <input type="number" class="transport-km" placeholder="例如 12" oninput="updateTransportFeeFor(this)">
+            <div class="note-text transport-tier-note"></div>
+        </div>
+        <div class="input-group">
+            <label>單趟交通費（可手動修改）</label>
+            <input type="number" class="transport-fee" value="0">
+        </div>
+        <div class="input-group" style="margin-bottom:0">
+            <label>誰的交通費</label>
+            <input type="text" class="transport-label" placeholder="管理師名字">
+        </div>
+    `;
+    document.getElementById('transportList').appendChild(card);
+    const t = getSettings().transportTiers || DEFAULTS.transportTiers;
+    card.querySelector('.transport-tier-note').textContent =
+        `規則：10km內 $${t.base} ／ 10km起 $${t.t10} ／ 15km起 $${t.t15} ／ 20km起 $${t.t20}`;
+    _updateDeleteButtons();
+}
+
+function removeTransportEntry(btn) {
+    btn.closest('.transport-entry').remove();
+    _updateDeleteButtons();
+}
+
+function _updateDeleteButtons() {
+    const entries = document.querySelectorAll('.transport-entry');
+    entries.forEach(e => {
+        e.querySelector('.transport-del-btn').style.display = entries.length > 1 ? '' : 'none';
+    });
+}
+
+function toggleTransportConfigFor(select) {
+    const entry = select.closest('.transport-entry');
+    const kmGroup = entry.querySelector('.transport-km-group');
+    const feeInput = entry.querySelector('.transport-fee');
+    if (select.value === 'yes') {
+        kmGroup.classList.remove('hidden');
+        if (!feeInput.value || feeInput.value == 0) updateTransportFeeFor(entry.querySelector('.transport-km'));
+    } else {
+        kmGroup.classList.add('hidden');
+        entry.querySelector('.transport-km').value = '';
+        feeInput.value = 0;
+    }
+}
+
+function updateTransportFeeFor(kmInput) {
+    const km = parseFloat(kmInput.value);
+    if (isNaN(km)) return;
+    const t = getSettings().transportTiers || DEFAULTS.transportTiers;
+    let fee = t.base;
+    if (km >= 20) fee = t.t20;
+    else if (km >= 15) fee = t.t15;
+    else if (km >= 10) fee = t.t10;
+    kmInput.closest('.transport-entry').querySelector('.transport-fee').value = fee;
+}
+
+function getTransportEntries() {
+    return Array.from(document.querySelectorAll('.transport-entry')).map(e => ({
+        fee: parseInt(e.querySelector('.transport-fee').value) || 0,
+        label: e.querySelector('.transport-label').value.trim(),
+    }));
+}
+
+// =============================================
+// 計算頁：渲染行程
+// =============================================
+function onStartDateChange() {
+    const startInput = document.getElementById('startDate');
+    const endInput   = document.getElementById('endDate');
+    if (startInput.value && endInput.value && endInput.value < startInput.value) {
+        const d = new Date(startInput.value);
+        d.setDate(d.getDate() + 3);
+        endInput.value = d.toISOString().split('T')[0];
+    }
+    renderSchedule();
+}
+
+function renderSchedule() {
+    const startDateStr = document.getElementById('startDate').value;
+    const endDateStr   = document.getElementById('endDate').value;
+    if (!startDateStr || !endDateStr) return;
+
+    const s = getSettings();
+    const SPECIAL = { 1: s.special1, 2: s.special2, 3: s.special3 };
+
+    const listDiv = document.getElementById('day-list');
+    listDiv.innerHTML = '';
+    document.getElementById('actionButtons').style.display = 'none';
+    document.getElementById('policyContainer').style.display = 'none';
+
+    let cur = new Date(startDateStr);
+    const end = new Date(endDateStr);
+    const dateArray = [];
+    while (cur <= end) { dateArray.push(new Date(cur)); cur.setDate(cur.getDate() + 1); }
+
+    dateArray.forEach(date => {
+        const dateStr = `${date.getMonth()+1}/${date.getDate()}`;
+        const ymd     = date.toISOString().split('T')[0];
+        const isSpec  = isSpecialDate(date);
+        const isHol   = isHoliday(date);
+        const weekDay = ['日','一','二','三','四','五','六'][date.getDay()];
+        const rp      = getRateForDate(date);
+
+        const opts = isSpec
+            ? [SPECIAL[1], SPECIAL[2], SPECIAL[3]]
+            : [rp.rates[1], rp.rates[2], rp.rates[3]];
+
+        let tagHtml = '';
+        if (isSpec) tagHtml = '<span class="tag tag-special">春節期間</span>';
+        else if (isHol) tagHtml = '<span class="tag tag-holiday">假日</span>';
+
+        const row = document.createElement('div');
+        row.className = 'day-row';
+        row.innerHTML = `
+            <div class="day-label">
+                ${dateStr}（${weekDay}）${tagHtml}
+                <input type="hidden" class="date-val" value="${ymd}">
+                <input type="hidden" class="is-special" value="${isSpec}">
+                <input type="hidden" class="is-holiday" value="${isHol}">
+                <input type="hidden" class="rate-period-name" value="${isSpec ? '春節費率' : rp.name}">
+                <input type="hidden" class="rate1" value="${opts[0]}">
+                <input type="hidden" class="rate2" value="${opts[1]}">
+                <input type="hidden" class="rate3" value="${opts[2]}">
+            </div>
+            <select class="day-select">
+                <option value="0">0 次 ($0)</option>
+                <option value="1" selected>1 次 ($${opts[0]})</option>
+                <option value="2">2 次 ($${opts[1]})</option>
+                <option value="3">3 次 ($${opts[2]})</option>
+            </select>
+        `;
+        listDiv.appendChild(row);
+    });
+
+    document.getElementById('schedule-container').style.display = 'block';
+    document.getElementById('resultArea').innerHTML = '';
+}
+
+function setMiddleDays(freq) {
+    const selects = document.querySelectorAll('.day-select');
+    if (selects.length <= 2) { alert('天數太少，沒有中間日期可修改'); return; }
+    for (let i = 1; i < selects.length - 1; i++) selects[i].value = freq;
+}
+
+// =============================================
+// 計算頁：計算費用
+// =============================================
+function formatDateRanges(dateStrings) {
+    if (!dateStrings.length) return '';
+    dateStrings.sort();
+    const ranges = [];
+    let rStart = dateStrings[0], rEnd = dateStrings[0];
+    for (let i = 1; i < dateStrings.length; i++) {
+        const diff = (new Date(dateStrings[i]) - new Date(rEnd)) / 86400000;
+        if (diff === 1) rEnd = dateStrings[i];
+        else { ranges.push(fmtRange(rStart, rEnd)); rStart = rEnd = dateStrings[i]; }
+    }
+    ranges.push(fmtRange(rStart, rEnd));
+    return ranges.join(', ');
+}
+
+function fmtRange(start, end) {
+    const short = s => { const [,m,d] = s.split('-'); return `${+m}/${+d}`; };
+    return start === end ? short(start) : `${short(start)}-${short(end)}`;
+}
+
+function calculate() {
+    const catNamesInput = document.getElementById('catNames').value.trim();
+    if (!catNamesInput) { alert('請先填寫貓咪名字喔！'); return; }
+
+    const s           = getSettings();
+    const HOLIDAY_FEE   = s.holidayFee;
+    const MULTI_CAT_FEE = s.multiCatFee;
+    const transportEntries = getTransportEntries();
+    const discountFee   = parseInt(document.getElementById('discountFee').value)  || 0;
+    const discountDesc  = document.getElementById('discountDesc').value.trim();
+    const extraFee      = parseInt(document.getElementById('extraFee').value)     || 0;
+    const extraDesc     = document.getElementById('extraDesc').value.trim();
+
+    const rows = document.querySelectorAll('.day-row');
+    if (!rows.length) { renderSchedule(); return; }
+
+    const cats    = catNamesInput.split('/').filter(n => n.trim());
+    const catCount = cats.length;
+
+    // 用 Map 聚合：key = `${periodName}__${freq}` (春節獨立)
+    // Map value: { label, unitPrice, count, total, dates[] }
+    const buckets = new Map();
+    let holidayDays = 0, holidayDates = [], totalTrips = 0, activeDays = 0;
+    let grandTotal = 0;
+
+    rows.forEach(row => {
+        const freq = parseInt(row.querySelector('.day-select').value);
+        if (!freq) return;
+        activeDays++;
+
+        const isSpec  = row.querySelector('.is-special').value === 'true';
+        const isHol   = row.querySelector('.is-holiday').value === 'true';
+        const ymd     = row.querySelector('.date-val').value;
+        const pName   = row.querySelector('.rate-period-name').value;
+        const unitRate = parseInt(row.querySelector(`.rate${freq}`).value);
+
+        const key = `${pName}__${freq}`;
+        if (!buckets.has(key)) {
+            buckets.set(key, {
+                label: isSpec
+                    ? `春節期間費用（${freq}次/天）`
+                    : `${pName.replace(/\s*費率$/, '')}基本費用（${freq}次/天）`,
+                unitPrice: unitRate,
+                count: 0, total: 0, dates: []
+            });
+        }
+        const b = buckets.get(key);
+        b.count++;
+        b.total += unitRate;
+        b.dates.push(ymd);
+        grandTotal += unitRate;
+
+        if (!isSpec && isHol) {
+            holidayDays++;
+            holidayDates.push(ymd);
+            grandTotal += HOLIDAY_FEE;
+        }
+
+        totalTrips += freq;
+    });
+
+    transportEntries.forEach(e => { if (e.fee > 0) grandTotal += e.fee * totalTrips; });
+
+    if (catCount > 1 && activeDays > 0) grandTotal += MULTI_CAT_FEE * activeDays * (catCount - 1);
+    if (discountFee > 0) grandTotal -= discountFee;
+    if (extraFee > 0)    grandTotal += extraFee;
+
+    const startStr = document.getElementById('startDate').value;
+    const endStr   = document.getElementById('endDate').value;
+    const dateRangeDisplay = fmtRange(startStr, endStr);
+
+    let html = `
+        <table>
+            <thead>
+                <tr><th colspan="6" class="title-row">2026 熙貓樂園寵物管理服務 費用明細表</th></tr>
+                <tr class="header-row">
+                    <th>${catNamesInput}</th><th>單價</th><th>數量</th><th>單位</th><th>金額小計</th><th>備註</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    buckets.forEach(b => {
+        html += rowHtml(b.label, b.unitPrice, b.count, '天', b.total, formatDateRanges(b.dates));
+    });
+
+    if (holidayDays > 0)
+        html += rowHtml('假日加價', HOLIDAY_FEE, holidayDays, '天', HOLIDAY_FEE * holidayDays, formatDateRanges(holidayDates));
+    if (catCount > 1 && activeDays > 0)
+        html += rowHtml(`多貓加價（第2隻起每隻$${MULTI_CAT_FEE}）`, MULTI_CAT_FEE * (catCount - 1), activeDays, '天',
+            MULTI_CAT_FEE * activeDays * (catCount - 1), `共${catCount}隻貓`);
+    transportEntries.forEach(e => {
+        if (e.fee > 0)
+            html += rowHtml('交通費', e.fee, totalTrips, '趟', e.fee * totalTrips, e.label);
+    });
+    if (extraFee > 0)
+        html += rowHtml('補收費用', extraFee, 1, '次', extraFee, extraDesc || '無說明');
+    if (discountFee > 0)
+        html += rowHtml('折抵費用', `-${discountFee}`, 1, '次', `-${discountFee}`, discountDesc || '無說明');
+
+    html += `
+            <tr class="total-row">
+                <td>合計</td><td></td><td></td><td></td>
+                <td>$${grandTotal.toLocaleString()}</td>
+                <td>${dateRangeDisplay}</td>
+            </tr>
+            </tbody></table>
+    `;
+
+    document.getElementById('resultArea').innerHTML = html;
+    document.getElementById('actionButtons').style.display = 'flex';
+
+    // 顯示可編輯的政策文字
+    const policyEl = document.getElementById('policyDisplay');
+    const deadline = getPaymentDeadlineText();
+    const policyText = getSettings().copyText || DEFAULT_COPY_TEXT;
+    policyEl.textContent = deadline ? `${deadline}\n\n${policyText}` : policyText;
+    document.getElementById('policyContainer').style.display = 'block';
+}
+
+function getPaymentDeadlineText() {
+    const startVal = document.getElementById('startDate').value;
+    if (!startVal) return '';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(startVal);
+
+    const defaultDeadline = new Date(today);
+    defaultDeadline.setDate(today.getDate() + 7);
+
+    const latestDeadline = new Date(start);
+    latestDeadline.setDate(start.getDate() - 1);
+
+    const deadline = defaultDeadline >= start ? latestDeadline : defaultDeadline;
+    return `確認後請於 ${deadline.getMonth() + 1}/${deadline.getDate()} 以前付款，謝謝🧡`;
+}
+
+function rowHtml(name, price, qty, unit, total, note) {
+    const dp = (typeof price === 'string' && price.startsWith('-')) ? price : `$${price}`;
+    const dt = (typeof total === 'string' && total.startsWith('-')) ? total : `$${Number(total).toLocaleString()}`;
+    return `<tr><td>${name}</td><td>${dp}</td><td>${qty}</td><td>${unit}</td><td>${dt}</td><td>${note}</td></tr>`;
+}
+
+// =============================================
+// 複製 / 截圖 / 分享
+// =============================================
+function copyPolicyText() {
+    const deadline = getPaymentDeadlineText();
+    const base = getSettings().copyText || DEFAULT_COPY_TEXT;
+    const text = deadline ? `${deadline}\n\n${base}` : base;
+    if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(text)
+            .then(() => alert('✅ 已成功複製！可直接貼上至 LINE。'))
+            .catch(() => fallbackCopy(text));
+    } else {
+        fallbackCopy(text);
+    }
+}
+
+function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); alert('✅ 已成功複製！'); }
+    catch { alert('複製失敗，請手動選取。'); }
+    document.body.removeChild(ta);
+}
+
+function captureTable() {
+    const el = document.getElementById('resultArea');
+    if (!el.innerHTML) { alert('請先產生報價明細'); return Promise.reject(); }
+    const clone = el.cloneNode(true);
+    clone.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;background:#fff;padding:20px;z-index:-1;';
+    document.body.appendChild(clone);
+    return html2canvas(clone, { scale: 2, backgroundColor: '#ffffff' })
+        .then(c => { document.body.removeChild(clone); return c; })
+        .catch(e => { document.body.removeChild(clone); throw e; });
+}
+
+function getFileName() {
+    const names = document.getElementById('catNames').value.replace(/[\/\\:*?"<>|]/g, '').trim();
+    const date  = document.getElementById('startDate').value.replace(/-/g, '');
+    return `${names}${date}.png`;
+}
+
+function downloadImage() {
+    captureTable().then(c => {
+        const a = document.createElement('a');
+        a.download = getFileName(); a.href = c.toDataURL('image/png');
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }).catch(e => { if (e) alert('圖片製作失敗，請重試'); });
+}
+
+function shareImage() {
+    if (!navigator.share) { downloadImage(); return; }
+    captureTable().then(c => {
+        c.toBlob(blob => {
+            const file = new File([blob], getFileName(), { type: 'image/png' });
+            if (navigator.canShare?.({ files: [file] })) {
+                navigator.share({ files: [file] }).catch(e => { if (e.name !== 'AbortError') console.error(e); });
+            } else { downloadImage(); }
+        });
+    }).catch(e => { if (e) alert('圖片製作失敗，請重試'); });
+}
+
+// =============================================
+// 初始化
+// =============================================
+window.onload = function () {
+    const today = new Date();
+    const s = new Date(today); s.setDate(today.getDate() + 7);
+    const e = new Date(s);    e.setDate(s.getDate() + 3);
+    const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    document.getElementById('startDate').value = fmt(s);
+    document.getElementById('endDate').value   = fmt(e);
+    loadCatsFromCloud();
+    addTransportEntry();
+    renderSchedule();
+};
+</script>
+</body>
+</html>
