@@ -194,6 +194,8 @@
         .cat-card-checkbox { width: 15px; height: 15px; flex-shrink: 0; accent-color: #7B5E52; cursor: pointer; }
         .cat-card-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #2D2116; font-size: 0.875em; font-weight: 500; cursor: pointer; }
         .cat-card-name:hover { color: #7B5E52; }
+        .cat-card-fee { font-size: 0.78em; color: #7B5E52; padding: 0 8px; flex-shrink: 0; cursor: pointer; white-space: nowrap; }
+        .cat-card-fee:hover { color: #4A3728; }
         .cat-card-del { background: none; border: none; border-left: 1px solid #E8DDD0; color: #C5A882; font-size: 15px; padding: 7px 9px; cursor: pointer; flex-shrink: 0; transition: color 0.15s, background 0.15s; line-height: 1; align-self: stretch; }
         /* Cat Edit Drawer */
         .cat-drawer-overlay { position: fixed; inset: 0; background: rgba(45,33,22,0.35); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.22s; }
@@ -483,6 +485,7 @@
             <div id="catAddRow" style="display:none;margin-bottom:12px">
                 <div class="cat-add-row">
                     <input type="text" id="catNewInput" placeholder="例如：跳跳/白木（多隻貓以 / 分隔）" onkeydown="if(event.key==='Enter' && !event.isComposing)addCatEntry()">
+                    <input type="number" id="catNewFeeInput" placeholder="交通費（選填）" min="0" style="width:130px">
                     <button class="btn-sm btn-primary-sm" onclick="addCatEntry()">新增</button>
                     <button class="btn-sm btn-ghost-sm" onclick="document.getElementById('catAddRow').style.display='none'">取消</button>
                 </div>
@@ -517,9 +520,13 @@
             <label style="margin-bottom:6px">目前名字</label>
             <div class="cat-drawer-current" id="catDrawerCurrent"></div>
         </div>
-        <div class="input-group" style="margin-bottom:0">
+        <div class="input-group">
             <label>修改為</label>
             <input type="text" id="catDrawerInput" placeholder="例如：跳跳/白木" onkeydown="if(event.key==='Enter' && !event.isComposing)saveCatDrawer()">
+        </div>
+        <div class="input-group" style="margin-bottom:0">
+            <label>交通費（空白代表 0 元）</label>
+            <input type="number" id="catDrawerFeeInput" placeholder="例如：150" min="0" onkeydown="if(event.key==='Enter' && !event.isComposing)saveCatDrawer()">
         </div>
     </div>
     <div class="cat-drawer-footer">
@@ -541,25 +548,29 @@ let _catSort = localStorage.getItem('ccat_sort') || 'default';
 
 function getCatCount(name) { return name.split('/').length; }
 
+function normalizeCats(raw) {
+    return raw.map(c => typeof c === 'string' ? { name: c, fee: 0 } : c);
+}
+
 function getFilteredSortedCats() {
     let result = [..._cats];
-    if (_catSearch) result = result.filter(c => c.toLowerCase().includes(_catSearch.toLowerCase()));
+    if (_catSearch) result = result.filter(c => c.name.toLowerCase().includes(_catSearch.toLowerCase()));
     if (_catCountFilter > 0) {
         result = _catCountFilter === 99
-            ? result.filter(c => getCatCount(c) >= 4)
-            : result.filter(c => getCatCount(c) === _catCountFilter);
+            ? result.filter(c => getCatCount(c.name) >= 4)
+            : result.filter(c => getCatCount(c.name) === _catCountFilter);
     }
-    if (_catSort === 'count') result.sort((a, b) => getCatCount(a) - getCatCount(b));
-    else if (_catSort === 'strokes') result.sort((a, b) => a.localeCompare(b, 'zh-TW-u-co-stroke'));
+    if (_catSort === 'count') result.sort((a, b) => getCatCount(a.name) - getCatCount(b.name));
+    else if (_catSort === 'strokes') result.sort((a, b) => a.name.localeCompare(b.name, 'zh-TW-u-co-stroke'));
     return result;
 }
 
 async function loadCatsFromCloud() {
     try {
         const res = await fetch(CATS_API);
-        _cats = await res.json();
+        _cats = normalizeCats(await res.json());
     } catch(e) {
-        try { _cats = JSON.parse(localStorage.getItem('ccat_cats') || '[]'); } catch(_) {}
+        try { _cats = normalizeCats(JSON.parse(localStorage.getItem('ccat_cats') || '[]')); } catch(_) {}
     }
     // 初始化排序 select
     const sortSel = document.getElementById('catSortSelect');
@@ -584,9 +595,9 @@ async function saveCats() {
 function refreshCatDatalist() {
     const dl = document.getElementById('catList');
     dl.innerHTML = '';
-    _cats.forEach(name => {
+    _cats.forEach(c => {
         const opt = document.createElement('option');
-        opt.value = name;
+        opt.value = c.name;
         dl.appendChild(opt);
     });
 }
@@ -608,6 +619,8 @@ function openCatDrawer(name) {
     _drawerCatName = name;
     document.getElementById('catDrawerCurrent').textContent = name;
     document.getElementById('catDrawerInput').value = name;
+    const cat = _cats.find(c => c.name === name);
+    document.getElementById('catDrawerFeeInput').value = cat && cat.fee ? cat.fee : '';
     document.getElementById('catDrawerOverlay').classList.add('open');
     document.getElementById('catDrawer').classList.add('open');
     setTimeout(() => { const i = document.getElementById('catDrawerInput'); i.focus(); i.select(); }, 260);
@@ -622,10 +635,17 @@ function closeCatDrawer() {
 async function saveCatDrawer() {
     const newName = document.getElementById('catDrawerInput').value.replace(/\s/g, '').trim();
     if (!newName) { alert('名字不可為空'); return; }
-    if (newName === _drawerCatName) { closeCatDrawer(); return; }
-    if (_cats.includes(newName)) { showToast('「' + newName + '」已存在'); return; }
-    const idx = _cats.indexOf(_drawerCatName);
-    if (idx !== -1) _cats[idx] = newName;
+    const newFee = parseInt(document.getElementById('catDrawerFeeInput').value) || 0;
+    const idx = _cats.findIndex(c => c.name === _drawerCatName);
+    if (newName === _drawerCatName) {
+        if (idx !== -1) _cats[idx].fee = newFee;
+        await saveCats();
+        renderCatList();
+        closeCatDrawer();
+        return;
+    }
+    if (_cats.find(c => c.name === newName)) { showToast('「' + newName + '」已存在'); return; }
+    if (idx !== -1) _cats[idx] = { name: newName, fee: newFee };
     await saveCats();
     renderCatList();
     closeCatDrawer();
@@ -642,7 +662,9 @@ function renderCatList() {
     document.getElementById('catSelCount').textContent = _selectedCats.size;
 
     container.innerHTML = '';
-    filtered.forEach(name => {
+    filtered.forEach(cat => {
+        const name = cat.name;
+        const fee = cat.fee || 0;
         const esc = name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
         const isSelected = _selectedCats.has(name);
         const card = document.createElement('div');
@@ -652,6 +674,7 @@ function renderCatList() {
                 <input type="checkbox" class="cat-card-checkbox" ${isSelected ? 'checked' : ''} onchange="toggleCatSelect('${esc}', this.checked)">
                 <span class="cat-card-name" title="${name}" onclick="event.preventDefault();event.stopPropagation();openCatDrawer('${esc}')">${name}</span>
             </label>
+            <span class="cat-card-fee" onclick="event.preventDefault();event.stopPropagation();openCatDrawer('${esc}')" title="點擊編輯交通費">${fee > 0 ? '$' + fee : '—'}</span>
             <button class="cat-card-del" onclick="removeCat('${esc}')" title="刪除">×</button>
         `;
         container.appendChild(card);
@@ -665,7 +688,7 @@ function toggleCatSelect(name, checked) {
 }
 
 function selectAllCats() {
-    getFilteredSortedCats().forEach(n => _selectedCats.add(n));
+    getFilteredSortedCats().forEach(c => _selectedCats.add(c.name));
     renderCatList();
 }
 
@@ -674,7 +697,7 @@ function clearCatSelection() { _selectedCats.clear(); renderCatList(); }
 async function batchDeleteCats() {
     if (_selectedCats.size === 0) return;
     if (!confirm(`確定刪除已選的 ${_selectedCats.size} 筆？`)) return;
-    _cats = _cats.filter(c => !_selectedCats.has(c));
+    _cats = _cats.filter(c => !_selectedCats.has(c.name));
     _selectedCats.clear();
     await saveCats();
     renderCatList();
@@ -691,16 +714,20 @@ function toggleCatAddRow() {
     if (isHidden) document.getElementById('catNewInput').focus();
 }
 
-function addCatEntry(name) {
+function addCatEntry(name, fee) {
     const val = (name !== undefined ? name : document.getElementById('catNewInput').value).replace(/\s/g, '').trim();
     if (!val) return;
-    if (_cats.includes(val)) {
+    if (_cats.find(c => c.name === val)) {
         showToast('「' + val + '」已存在');
-        return; // 保留 input 內容，不清空
+        return;
     }
-    _cats.push(val);
+    const feeVal = fee !== undefined ? fee : (parseInt(document.getElementById('catNewFeeInput').value) || 0);
+    _cats.push({ name: val, fee: feeVal });
     saveCats();
-    if (name === undefined) document.getElementById('catNewInput').value = '';
+    if (name === undefined) {
+        document.getElementById('catNewInput').value = '';
+        document.getElementById('catNewFeeInput').value = '';
+    }
     renderCatList();
 }
 
@@ -712,10 +739,12 @@ function importCatsFromCSV(input) {
         const lines = e.target.result.split(/\r?\n/);
         let added = 0;
         lines.forEach((line, idx) => {
-            const field = line.split(',')[0].replace(/^"|"$/g, '').replace(/\s/g, '').trim();
+            const cols = line.split(',');
+            const field = cols[0].replace(/^"|"$/g, '').replace(/\s/g, '').trim();
             if (!field) return;
             if (idx === 0 && /名字|name|cat|貓/i.test(field)) return;
-            if (!_cats.includes(field)) { _cats.push(field); added++; }
+            const fee = parseInt(cols[1]) || 0;
+            if (!_cats.find(c => c.name === field)) { _cats.push({ name: field, fee }); added++; }
         });
         saveCats();
         renderCatList();
@@ -726,14 +755,14 @@ function importCatsFromCSV(input) {
 }
 
 function removeCat(name) {
-    _cats = _cats.filter(c => c !== name);
+    _cats = _cats.filter(c => c.name !== name);
     _selectedCats.delete(name);
     saveCats();
     renderCatList();
 }
 
 function downloadCatTemplate() {
-    const csv = '﻿名字\n跳跳/白木\n咪咪\n橘子/花花/豆豆\n';
+    const csv = '﻿名字,交通費\n跳跳/白木,150\n咪咪,\n橘子/花花/豆豆,100\n';
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -1410,6 +1439,21 @@ window.onload = function () {
     loadCatsFromCloud();
     addTransportEntry();
     renderSchedule();
+
+    document.getElementById('catNames').addEventListener('change', function() {
+        const val = this.value.replace(/\s/g, '').trim();
+        const cat = _cats.find(c => c.name === val);
+        if (!cat || !cat.fee) return;
+        // 填入固定交通費：直接設定現有第一筆 entry 的值
+        const entries = document.querySelectorAll('.transport-entry');
+        if (entries.length === 1) {
+            const entry = entries[0];
+            const select = entry.querySelector('select');
+            select.value = 'yes';
+            toggleTransportConfigFor(select);
+            entry.querySelector('.transport-fee').value = cat.fee;
+        }
+    });
 };
 </script>
 </body>
