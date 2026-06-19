@@ -555,11 +555,14 @@ let _catSort = localStorage.getItem('ccat_sort') || 'default';
 function getCatCount(name) { return name.split('/').length; }
 
 function normalizeCats(raw) {
-    return raw.map(c => {
-        if (typeof c === 'string') return { name: c, fees: [] };
-        if (!c.fees) return { name: c.name, fees: c.fee > 0 ? [{ caretaker: '', fee: c.fee }] : [] };
-        return c;
-    });
+    if (!Array.isArray(raw)) return [];
+    return raw
+        .filter(c => c && (typeof c === 'string' ? true : typeof c.name === 'string' && c.name))
+        .map(c => {
+            if (typeof c === 'string') return { name: c, fees: [] };
+            if (!Array.isArray(c.fees)) return { name: c.name, fees: c.fee > 0 ? [{ caretaker: '', fee: c.fee }] : [] };
+            return c;
+        });
 }
 
 function getFilteredSortedCats() {
