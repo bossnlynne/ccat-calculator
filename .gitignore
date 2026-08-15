@@ -1,0 +1,5 @@
+.claude/
+.netlify/
+.dev.vars*
+.wrangler/
+node_modules/
