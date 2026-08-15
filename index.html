@@ -25,8 +25,13 @@
         <!-- ===== 費用計算 ===== -->
         <div id="tab-calc" class="tab-panel active">
             <div class="input-group">
+                <label>報價日期</label>
+                <input type="date" id="quoteDate">
+            </div>
+            <div class="input-group">
                 <label>貓咪名字（用 / 分隔）</label>
-                <input type="text" id="catNames" list="catList" placeholder="例如：跳跳/白木">
+                <input type="text" id="catNames" list="catList" placeholder="例如：跳跳/白木" disabled>
+                <div class="note-text" id="catNameStatus" style="margin-top:6px">正在載入共用名單…</div>
             </div>
             <div class="flex-row">
                 <div class="input-group" style="flex:1">
@@ -84,9 +89,11 @@
                 <button class="btn btn-calc" onclick="calculate()">產生報價明細</button>
             </div>
             <div id="actionButtons" class="action-buttons">
-                <button class="btn btn-download" onclick="downloadImage()">下載圖片</button>
-                <button class="btn btn-share" onclick="shareImage()">分享報價</button>
+                <button class="btn btn-download" onclick="downloadImage(false)">下載費用明細</button>
+                <button class="btn btn-download" onclick="downloadImage(true)">下載完整報價</button>
+                <button class="btn btn-share" onclick="shareImage()">分享完整報價</button>
             </div>
+            <div id="quoteStaleNotice" class="note-text" style="display:none;text-align:center;margin-top:10px;color:#8B3A3A">內容已修改，請重新產生報價</div>
 
             <div id="resultArea" class="table-responsive"></div>
 
@@ -121,7 +128,10 @@
                         依生效日期設定不同費率，系統會依每天日期自動套用對應費率。日期早於第一期時套用第一期，晚於最後一期時套用最近一期。
                     </div>
                     <div id="ratePeriodList"></div>
-                    <button class="add-row-btn" onclick="addRatePeriodCard()">＋ 新增費率分期</button>
+                    <div class="settings-action-row">
+                        <button class="add-row-btn" onclick="addRatePeriodCard()">＋ 新增費率分期</button>
+                        <button class="add-row-btn" onclick="copyLatestRateToNextYear()">複製為下一年度</button>
+                    </div>
                 </div>
 
                 <!-- 交通費級距 -->
@@ -201,8 +211,13 @@
                 <div class="settings-section">
                     <h3>🗓 國定假日期間設定</h3>
                     <div class="note-text" style="margin-bottom:10px">
-                        依人事行政局公告格式，設定各假日連假起迄日
+                        假日資料只新增、修改或封存，不刪除。官方連假匯入後會自動向前、向後各延伸一天。
                     </div>
+                    <div class="holiday-import-row">
+                        <input type="number" id="holidayImportYear" min="2020" max="2100" placeholder="西元年份">
+                        <button class="btn-sm btn-primary-sm" onclick="previewOfficialHolidays()">抓取官方假日</button>
+                    </div>
+                    <div id="holidayImportPreview" class="import-preview" style="display:none"></div>
                     <div class="holiday-list" id="holidayRangeList"></div>
                     <button class="add-row-btn" onclick="addHolidayRow()">＋ 新增假日區間</button>
                 </div>
@@ -273,6 +288,8 @@
 
     </div>
 </div>
+
+<div id="fullQuoteArea" class="full-quote-export" aria-hidden="true"></div>
 
 <datalist id="catList"></datalist>
 

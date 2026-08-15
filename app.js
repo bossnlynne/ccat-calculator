@@ -5,6 +5,7 @@ const API_BASE = 'https://ccat-cats-api.ccat-lynne.workers.dev';
 const CATS_API = `${API_BASE}/cats`;
 const SETTINGS_API = `${API_BASE}/settings`;
 const AUTH_API = `${API_BASE}/auth`;
+const OFFICIAL_HOLIDAYS_API = `${API_BASE}/official-holidays`;
 let _cats = [];
 let _catsRevision = 'none';
 let _settingsRevision = 'none';
@@ -12,6 +13,15 @@ let _selectedCats = new Set();
 let _catCountFilter = 0;
 let _catSearch = '';
 let _catSort = localStorage.getItem('ccat_sort') || 'default';
+let _quoteIsCurrent = false;
+let _allowUnlistedCat = '';
+
+function invalidateQuote() {
+    if (!document.getElementById('resultArea')?.innerHTML) return;
+    _quoteIsCurrent = false;
+    document.getElementById('actionButtons').style.display = 'none';
+    document.getElementById('quoteStaleNotice').style.display = 'block';
+}
 
 function getCatCount(name) { return name.split('/').length; }
 
@@ -175,12 +185,13 @@ function addDrawerFeeRow(caretaker = '', fee = '') {
     list.appendChild(row);
 }
 
-function openCatDrawer(name) {
+function openCatDrawer(name, createNew = false) {
     _drawerReturnFocus = document.activeElement;
-    _drawerCatName = name;
+    _drawerCatName = createNew ? null : name;
+    document.getElementById('catDrawerTitle').textContent = createNew ? '新增貓咪與交通費' : '編輯貓咪名字';
     document.getElementById('catDrawerCurrent').textContent = name;
     document.getElementById('catDrawerInput').value = name;
-    const cat = _cats.find(c => c.name === name);
+    const cat = createNew ? null : _cats.find(c => c.name === name);
     const list = document.getElementById('catDrawerFeeList');
     list.innerHTML = '';
     (cat && cat.fees || []).forEach(f => addDrawerFeeRow(f.caretaker, f.fee || ''));
@@ -210,14 +221,20 @@ async function saveCatDrawer() {
         caretaker: row.querySelector('.fee-caretaker').value.trim(),
         fee: parseInt(row.querySelector('.fee-amount').value) || 0,
     })).filter(f => f.caretaker || f.fee > 0);
-    const idx = _cats.findIndex(c => c.name === _drawerCatName);
+    const idx = _drawerCatName === null ? -1 : _cats.findIndex(c => c.name === _drawerCatName);
     if (newName !== _drawerCatName && _cats.find(c => c.name === newName)) {
         showToast('「' + newName + '」已存在'); return;
     }
-    if (idx === -1) return;
-    const nextCats = _cats.map((cat, index) => index === idx ? { name: newName, fees: newFees } : cat);
+    const nextCats = idx === -1
+        ? [..._cats, { name: newName, fees: newFees }]
+        : _cats.map((cat, index) => index === idx ? { name: newName, fees: newFees } : cat);
     if (!(await saveCats(nextCats))) return;
     renderCatList();
+    if (document.getElementById('catNames').value.replace(/\s/g, '') === newName) {
+        const names = newName.split('/').filter(Boolean);
+        document.getElementById('catNameStatus').textContent = `已辨識：${names.join('、')}，共 ${names.length} 隻`;
+        _allowUnlistedCat = '';
+    }
     closeCatDrawer();
 }
 
@@ -396,8 +413,8 @@ const DEFAULT_COPY_TEXT = `付款方式：
 
 const DEFAULTS = {
     ratePeriods: [
-        { name: '2025 費率', start: '2025-01-01', end: '2025-12-31', rate1: 880, rate2: 1540, rate3: 2400 },
-        { name: '2026 費率', start: '2026-01-01', end: '2026-12-31', rate1: 880, rate2: 1540, rate3: 2400 },
+        { name: '2025 費率', start: '2025-01-01', end: '2025-12-31', rate1: 880, rate2: 1540, rate3: 2400, status: 'archived' },
+        { name: '2026 費率', start: '2026-01-01', end: '2026-12-31', rate1: 880, rate2: 1540, rate3: 2400, status: 'active' },
     ],
     special1: 1400, special2: 2500, special3: 3800,
     transportTiers: { base: 50, t10: 100, t15: 150, t20: 200 },
@@ -428,11 +445,20 @@ function getSettings() {
     if (_settingsCache) return _settingsCache;
     try {
         const saved = JSON.parse(localStorage.getItem('ccat_settings') || '{}');
-        _settingsCache = Object.assign({}, DEFAULTS, saved);
+        _settingsCache = normalizeSettings(Object.assign({}, DEFAULTS, saved));
     } catch (e) {
-        _settingsCache = Object.assign({}, DEFAULTS);
+        _settingsCache = normalizeSettings(Object.assign({}, DEFAULTS));
     }
     return _settingsCache;
+}
+
+function normalizeSettings(settings) {
+    const today = new Date().toISOString().split('T')[0];
+    return {
+        ...settings,
+        ratePeriods: (settings.ratePeriods || []).map(p => ({ ...p, status: p.status || (p.end < today ? 'archived' : 'active') })),
+        holidayRanges: (settings.holidayRanges || []).map(r => ({ ...r, status: r.status || (r.end < today ? 'archived' : 'active') })),
+    };
 }
 
 async function loadSettingsFromCloud() {
@@ -441,7 +467,7 @@ async function loadSettingsFromCloud() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         _settingsRevision = res.headers.get('X-Data-Version') || 'none';
         const cloud = await res.json();
-        _settingsCache = Object.assign({}, DEFAULTS, cloud);
+        _settingsCache = normalizeSettings(Object.assign({}, DEFAULTS, cloud));
         localStorage.setItem('ccat_settings', JSON.stringify(_settingsCache));
         return true;
     } catch (error) {
@@ -464,7 +490,7 @@ function escapeHtml(value) {
 // 依日期找對應費率分期，回傳 { name, rates:{1,2,3} }
 function getRateForDate(dateObj) {
     const ymd = dateObj.toISOString().split('T')[0];
-    const periods = [...(getSettings().ratePeriods || [])].sort((a, b) => a.start.localeCompare(b.start));
+    const periods = [...(getSettings().ratePeriods || [])].filter(p => p.status !== 'draft').sort((a, b) => a.start.localeCompare(b.start));
     for (const p of periods) {
         if (ymd >= p.start && ymd <= p.end)
             return { name: p.name, rates: { 1: p.rate1, 2: p.rate2, 3: p.rate3 } };
@@ -486,14 +512,22 @@ function isSpecialDate(dateObj) {
     return ymd >= s.specialStart && ymd <= s.specialEnd;
 }
 
-function isHoliday(dateObj) {
+function getHolidayInfo(dateObj) {
     if (isSpecialDate(dateObj)) return false;
     const ymd = dateObj.toISOString().split('T')[0];
     for (const r of getSettings().holidayRanges) {
-        if (ymd >= r.start && ymd <= r.end) return true;
+        if (r.status !== 'draft' && ymd >= r.start && ymd <= r.end) {
+            let reason = r.name || '假日計費';
+            if (r.officialStart && ymd < r.officialStart) reason = '連假前一天';
+            else if (r.officialEnd && ymd > r.officialEnd) reason = '連假後一天';
+            else if (r.source === 'dgpa') reason = `國定假日${r.name ? `：${r.name}` : ''}`;
+            return { range: r, reason };
+        }
     }
-    return false;
+    return null;
 }
+
+function isHoliday(dateObj) { return Boolean(getHolidayInfo(dateObj)); }
 
 // =============================================
 // 分頁切換
@@ -559,21 +593,22 @@ function populateSettingsForm() {
     // 費率分期
     const list = document.getElementById('ratePeriodList');
     list.innerHTML = '';
-    (s.ratePeriods || []).forEach(p => addRatePeriodCard(p.name, p.start, p.end, p.rate1, p.rate2, p.rate3));
+    (s.ratePeriods || []).forEach(p => addRatePeriodCard(p.name, p.start, p.end, p.rate1, p.rate2, p.rate3, p.status));
 
     // 假日清單
     const hList = document.getElementById('holidayRangeList');
     hList.innerHTML = '';
-    (s.holidayRanges || []).forEach(r => addHolidayRow(r.name, r.start, r.end));
+    (s.holidayRanges || []).forEach(r => addHolidayRow(r.name, r.start, r.end, r.status, r));
 }
 
 // =============================================
 // 費率分期卡片
 // =============================================
-function addRatePeriodCard(name='', start='', end='', rate1='', rate2='', rate3='') {
+function addRatePeriodCard(name='', start='', end='', rate1='', rate2='', rate3='', status='draft') {
     const list = document.getElementById('ratePeriodList');
     const card = document.createElement('div');
-    card.className = 'rate-period-card';
+    card.className = `rate-period-card${status === 'archived' ? ' is-archived' : ''}`;
+    card.dataset.status = status;
     card.innerHTML = `
         <div class="card-top">
             <div class="period-name">
@@ -584,7 +619,8 @@ function addRatePeriodCard(name='', start='', end='', rate1='', rate2='', rate3=
                 <span class="period-dash">—</span>
                 <input type="date" value="${escapeHtml(end)}" title="生效結束日">
             </div>
-            <button class="btn-sm btn-danger-sm" onclick="this.closest('.rate-period-card').remove()" title="刪除">✕</button>
+            <span class="status-badge ${status}">${status === 'archived' ? '已封存' : status === 'draft' ? '草稿' : '使用中'}</span>
+            <button class="btn-sm btn-ghost-sm" onclick="toggleArchive(this.closest('.rate-period-card'))">${status === 'archived' ? '解除封存' : status === 'draft' ? '啟用' : '封存'}</button>
         </div>
         <div class="card-rates">
             <div>
@@ -601,7 +637,31 @@ function addRatePeriodCard(name='', start='', end='', rate1='', rate2='', rate3=
             </div>
         </div>
     `;
+    setCardDisabled(card, status === 'archived');
     list.appendChild(card);
+}
+
+function setCardDisabled(card, disabled) { card.querySelectorAll('input').forEach(input => { input.disabled = disabled; }); }
+
+function toggleArchive(card) {
+    const current = card.dataset.status;
+    if (current === 'archived' && !confirm('確定解除封存？解除後即可修改這筆歷史資料。')) return;
+    const next = current === 'draft' ? 'active' : current === 'active' ? 'archived' : 'active';
+    card.dataset.status = next;
+    card.classList.toggle('is-archived', next === 'archived');
+    setCardDisabled(card, next === 'archived');
+    const badge = card.querySelector('.status-badge');
+    badge.className = `status-badge ${next}`;
+    badge.textContent = next === 'archived' ? '已封存' : '使用中';
+    card.querySelector('button').textContent = next === 'archived' ? '解除封存' : '封存';
+}
+
+function copyLatestRateToNextYear() {
+    const periods = collectRatePeriods();
+    if (!periods.length) return addRatePeriodCard();
+    const latest = [...periods].sort((a, b) => b.end.localeCompare(a.end))[0];
+    const year = Number(latest.end.slice(0, 4)) + 1;
+    addRatePeriodCard(`${year} 費率`, `${year}-01-01`, `${year}-12-31`, latest.rate1, latest.rate2, latest.rate3, 'draft');
 }
 
 function collectRatePeriods() {
@@ -614,6 +674,7 @@ function collectRatePeriods() {
             rate1: parseInt(inputs[3].value) || 0,
             rate2: parseInt(inputs[4].value) || 0,
             rate3: parseInt(inputs[5].value) || 0,
+            status: card.dataset.status || 'draft',
         };
     }).filter(p => p.start && p.end);
 }
@@ -621,10 +682,14 @@ function collectRatePeriods() {
 // =============================================
 // 假日清單
 // =============================================
-function addHolidayRow(name='', start='', end='') {
+function addHolidayRow(name='', start='', end='', status='active', metadata={}) {
     const list = document.getElementById('holidayRangeList');
     const row = document.createElement('div');
-    row.className = 'holiday-row';
+    row.className = `holiday-row${status === 'archived' ? ' is-archived' : ''}`;
+    row.dataset.status = status;
+    row.dataset.source = metadata.source || 'manual';
+    row.dataset.officialStart = metadata.officialStart || '';
+    row.dataset.officialEnd = metadata.officialEnd || '';
     row.innerHTML = `
         <div class="holiday-name">
             <input type="text" placeholder="假日名稱" value="${escapeHtml(name)}">
@@ -636,16 +701,76 @@ function addHolidayRow(name='', start='', end='') {
         <div class="holiday-date">
             <input type="date" value="${escapeHtml(end)}">
         </div>
-        <button class="btn-sm btn-danger-sm" onclick="this.closest('.holiday-row').remove()" title="刪除">✕</button>
+        <span class="status-badge ${status}">${status === 'archived' ? '已封存' : status === 'draft' ? '草稿' : '使用中'}</span>
+        <button class="btn-sm btn-ghost-sm" onclick="toggleArchive(this.closest('.holiday-row'))">${status === 'archived' ? '解除封存' : status === 'draft' ? '啟用' : '封存'}</button>
     `;
+    setCardDisabled(row, status === 'archived');
     list.appendChild(row);
 }
 
 function collectHolidayRanges() {
     return Array.from(document.querySelectorAll('#holidayRangeList .holiday-row')).map(row => {
         const inputs = row.querySelectorAll('input');
-        return { name: inputs[0].value.trim(), start: inputs[1].value, end: inputs[2].value };
+        return {
+            name: inputs[0].value.trim(), start: inputs[1].value, end: inputs[2].value,
+            status: row.dataset.status || 'active', source: row.dataset.source || 'manual',
+            officialStart: row.dataset.officialStart || undefined, officialEnd: row.dataset.officialEnd || undefined,
+        };
     }).filter(r => r.start && r.end);
+}
+
+function shiftYmd(ymd, days) {
+    const date = new Date(`${ymd}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+}
+
+let _officialHolidayPreview = [];
+async function previewOfficialHolidays() {
+    const year = Number(document.getElementById('holidayImportYear').value);
+    if (!Number.isInteger(year) || year < 2020 || year > 2100) return alert('請輸入有效的西元年份');
+    const box = document.getElementById('holidayImportPreview');
+    box.style.display = 'block';
+    box.textContent = '正在讀取人事行政總處資料…';
+    try {
+        const response = await fetch(`${OFFICIAL_HOLIDAYS_API}?year=${year}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        _officialHolidayPreview = data.holidays.map(item => ({
+            name: item.name,
+            start: shiftYmd(item.officialStart, -1),
+            end: shiftYmd(item.officialEnd, 1),
+            officialStart: item.officialStart,
+            officialEnd: item.officialEnd,
+            source: 'dgpa',
+            status: 'active',
+        }));
+        if (!_officialHolidayPreview.length) throw new Error('沒有找到國定假日');
+        box.innerHTML = `<strong>${year} 年匯入預覽</strong><br>${_officialHolidayPreview.map(item =>
+            `${escapeHtml(item.name)}：${item.start}～${item.end}（官方 ${item.officialStart}～${item.officialEnd}）`
+        ).join('<br>')}<div style="margin-top:10px"><button class="btn-sm btn-primary-sm" onclick="confirmOfficialHolidayImport()">確認加入</button> <button class="btn-sm btn-ghost-sm" onclick="cancelOfficialHolidayImport()">取消</button></div>`;
+    } catch (error) {
+        _officialHolidayPreview = [];
+        box.textContent = `官方資料讀取失敗：${error.message}`;
+    }
+}
+
+function confirmOfficialHolidayImport() {
+    const existing = collectHolidayRanges();
+    let added = 0;
+    _officialHolidayPreview.forEach(item => {
+        const duplicate = existing.some(range => range.source === 'dgpa' && range.officialStart === item.officialStart && range.officialEnd === item.officialEnd);
+        if (!duplicate) { addHolidayRow(item.name, item.start, item.end, item.status, item); added += 1; }
+    });
+    cancelOfficialHolidayImport();
+    showToast(`已加入 ${added} 筆，請按「儲存設定」同步`);
+}
+
+function cancelOfficialHolidayImport() {
+    _officialHolidayPreview = [];
+    const box = document.getElementById('holidayImportPreview');
+    box.style.display = 'none';
+    box.innerHTML = '';
 }
 
 // =============================================
@@ -853,6 +978,7 @@ function onStartDateChange() {
 }
 
 function renderSchedule() {
+    invalidateQuote();
     const startDateStr = document.getElementById('startDate').value;
     const endDateStr   = document.getElementById('endDate').value;
     if (!startDateStr || !endDateStr) return;
@@ -863,6 +989,7 @@ function renderSchedule() {
         document.getElementById('resultArea').innerHTML = '';
         document.getElementById('actionButtons').style.display = 'none';
         document.getElementById('policyContainer').style.display = 'none';
+        document.getElementById('quoteStaleNotice').style.display = 'none';
         showToast('結束日期不可早於開始日期');
         return;
     }
@@ -884,7 +1011,8 @@ function renderSchedule() {
         const dateStr = `${date.getMonth()+1}/${date.getDate()}`;
         const ymd     = date.toISOString().split('T')[0];
         const isSpec  = isSpecialDate(date);
-        const isHol   = isHoliday(date);
+        const holidayInfo = getHolidayInfo(date);
+        const isHol   = Boolean(holidayInfo);
         const weekDay = ['日','一','二','三','四','五','六'][date.getDay()];
         const rp      = getRateForDate(date);
 
@@ -894,7 +1022,7 @@ function renderSchedule() {
 
         let tagHtml = '';
         if (isSpec) tagHtml = '<span class="tag tag-special">春節期間</span>';
-        else if (isHol) tagHtml = '<span class="tag tag-holiday">假日</span>';
+        else if (isHol) tagHtml = `<span class="tag tag-holiday">假日</span><span class="manager-reason">${escapeHtml(holidayInfo.reason)}</span>`;
 
         const row = document.createElement('div');
         row.className = 'day-row';
@@ -921,6 +1049,7 @@ function renderSchedule() {
 
     document.getElementById('schedule-container').style.display = 'block';
     document.getElementById('resultArea').innerHTML = '';
+    document.getElementById('quoteStaleNotice').style.display = 'none';
 }
 
 function setMiddleDays(freq) {
@@ -954,6 +1083,14 @@ function fmtRange(start, end) {
 function calculate() {
     const catNamesInput = document.getElementById('catNames').value.trim();
     if (!catNamesInput) { alert('請先填寫貓咪名字喔！'); return; }
+    if (document.getElementById('catDrawer').classList.contains('open')) return;
+    const normalizedCatName = catNamesInput.replace(/\s/g, '');
+    if (!_cats.some(cat => cat.name === normalizedCatName) && _allowUnlistedCat !== normalizedCatName) {
+        if (confirm('此名稱不在貓咪名單中，請問是否新增？')) openCatDrawer(normalizedCatName, true);
+        else _allowUnlistedCat = normalizedCatName;
+        return;
+    }
+    if (!document.getElementById('quoteDate').value) { alert('請填寫報價日期'); return; }
 
     const s           = getSettings();
     const HOLIDAY_FEE   = s.holidayFee;
@@ -991,8 +1128,8 @@ function calculate() {
         if (!buckets.has(key)) {
             buckets.set(key, {
                 label: isSpec
-                    ? `春節期間費用（${freq}次/天）`
-                    : `${pName.replace(/\s*費率$/, '')}基本費用（${freq}次/天）`,
+                    ? `春節期間費用（每日 ${freq} 次）`
+                    : `${pName.replace(/\s*費率$/, '').trim()} 基本費用（每日 ${freq} 次）`,
                 unitPrice: unitRate,
                 count: 0, total: 0, dates: []
             });
@@ -1023,48 +1160,59 @@ function calculate() {
     const dateRangeDisplay = fmtRange(startStr, endStr);
     const startYear = startStr.slice(0, 4);
     const endYear = endStr.slice(0, 4);
-    const quoteYear = startYear === endYear ? startYear : `${startYear}–${endYear}`;
+    const quoteDate = document.getElementById('quoteDate').value;
+    const deadlineText = getPaymentDeadlineText();
+    const fullServiceRange = startYear === endYear
+        ? `${startYear}/${startStr.slice(5).replace('-', '/')}～${endStr.slice(5).replace('-', '/')}`
+        : `${startStr.replaceAll('-', '/')}～${endStr.replaceAll('-', '/')}`;
 
     let html = `
+        <div class="quote-title">熙貓樂園寵物管理服務報價單</div>
+        <div class="quote-meta">
+            <div><strong>報價日期：</strong>${escapeHtml(quoteDate.replaceAll('-', '/'))}</div>
+            <div><strong>服務期間：</strong>${escapeHtml(fullServiceRange)}</div>
+            <div><strong>服務對象：</strong>${escapeHtml(cats.join('、'))}（共 ${catCount} 隻）</div>
+            <div><strong>付款期限：</strong>${escapeHtml(deadlineText.replace(/^確認後請於 | 以前付款，謝謝🧡$/g, ''))}</div>
+        </div>
         <table>
             <thead>
-                <tr><th colspan="6" class="title-row">${escapeHtml(quoteYear)} 熙貓樂園寵物管理服務 費用明細表</th></tr>
                 <tr class="header-row">
-                    <th>${escapeHtml(catNamesInput)}</th><th>單價</th><th>數量</th><th>單位</th><th>金額小計</th><th>備註</th>
+                    <th>費用項目</th><th>計價方式</th><th>數量</th><th>小計</th><th>說明</th>
                 </tr>
             </thead>
             <tbody>
     `;
 
     buckets.forEach(b => {
-        html += rowHtml(b.label, b.unitPrice, b.count, '天', b.total, formatDateRanges(b.dates));
+        html += quoteRowHtml(b.label, `每日 $${b.unitPrice.toLocaleString()}`, `${b.count} 天`, b.total, formatDateRanges(b.dates));
     });
 
     if (holidayDays > 0)
-        html += rowHtml('假日加價', HOLIDAY_FEE, holidayDays, '天', HOLIDAY_FEE * holidayDays, formatDateRanges(holidayDates));
+        html += quoteRowHtml('假日加價', `每日 $${HOLIDAY_FEE.toLocaleString()}`, `${holidayDays} 天`, HOLIDAY_FEE * holidayDays, formatDateRanges(holidayDates));
     if (catCount > 1 && activeDays > 0)
-        html += rowHtml(`多貓加價（第2隻起每隻$${MULTI_CAT_FEE}）`, MULTI_CAT_FEE * (catCount - 1), activeDays, '天',
-            MULTI_CAT_FEE * activeDays * (catCount - 1), `共${catCount}隻貓`);
+        html += quoteRowHtml('多貓加價', `第二隻起，每日每隻 $${MULTI_CAT_FEE.toLocaleString()}`, `${activeDays} 天`,
+            MULTI_CAT_FEE * activeDays * (catCount - 1), `共 ${catCount} 隻貓`);
     transportEntries.forEach(e => {
         if (e.fee > 0)
-            html += rowHtml('交通費', e.fee, totalTrips, '趟', e.fee * totalTrips, e.label);
+            html += quoteRowHtml('交通費', `每趟 $${e.fee.toLocaleString()}`, `${totalTrips} 趟`, e.fee * totalTrips, e.label);
     });
     if (extraFee > 0)
-        html += rowHtml('補收費用', extraFee, 1, '次', extraFee, extraDesc || '無說明');
+        html += quoteRowHtml('補收費用', '單次', '1 次', extraFee, extraDesc || '無說明');
     if (discountFee > 0)
-        html += rowHtml('折抵費用', `-${discountFee}`, 1, '次', `-${discountFee}`, discountDesc || '無說明');
+        html += quoteRowHtml('折抵費用', '單次', '1 次', -discountFee, discountDesc || '無說明');
 
     html += `
             <tr class="total-row">
-                <td>合計</td><td></td><td></td><td></td>
-                <td>$${grandTotal.toLocaleString()}</td>
-                <td>${dateRangeDisplay}</td>
+                <td>合計</td><td></td><td></td>
+                <td>$${grandTotal.toLocaleString()}</td><td>${dateRangeDisplay}</td>
             </tr>
             </tbody></table>
     `;
 
     document.getElementById('resultArea').innerHTML = html;
     document.getElementById('actionButtons').style.display = 'flex';
+    document.getElementById('quoteStaleNotice').style.display = 'none';
+    _quoteIsCurrent = true;
 
     // 顯示可編輯的政策文字
     const policyEl = document.getElementById('policyDisplay');
@@ -1077,7 +1225,8 @@ function calculate() {
 function getPaymentDeadlineText() {
     const startVal = document.getElementById('startDate').value;
     if (!startVal) return '';
-    const today = new Date();
+    const quoteValue = document.getElementById('quoteDate').value;
+    const today = quoteValue ? new Date(`${quoteValue}T00:00:00`) : new Date();
     today.setHours(0, 0, 0, 0);
     const start = new Date(startVal);
 
@@ -1089,13 +1238,18 @@ function getPaymentDeadlineText() {
 
     let deadline = defaultDeadline >= start ? latestDeadline : defaultDeadline;
     if (deadline < today) deadline = today;
-    return `確認後請於 ${deadline.getMonth() + 1}/${deadline.getDate()} 以前付款，謝謝🧡`;
+    return `確認後請於 ${deadline.getFullYear()}/${deadline.getMonth() + 1}/${deadline.getDate()} 以前付款，謝謝🧡`;
 }
 
 function rowHtml(name, price, qty, unit, total, note) {
     const dp = (typeof price === 'string' && price.startsWith('-')) ? price : `$${price}`;
     const dt = (typeof total === 'string' && total.startsWith('-')) ? total : `$${Number(total).toLocaleString()}`;
     return `<tr><td>${escapeHtml(name)}</td><td>${escapeHtml(dp)}</td><td>${escapeHtml(qty)}</td><td>${escapeHtml(unit)}</td><td>${escapeHtml(dt)}</td><td>${escapeHtml(note)}</td></tr>`;
+}
+
+function quoteRowHtml(name, pricing, quantity, total, note) {
+    const displayTotal = total < 0 ? `-$${Math.abs(total).toLocaleString()}` : `$${Number(total).toLocaleString()}`;
+    return `<tr><td>${escapeHtml(name)}</td><td>${escapeHtml(pricing)}</td><td>${escapeHtml(quantity)}</td><td>${escapeHtml(displayTotal)}</td><td>${escapeHtml(note)}</td></tr>`;
 }
 
 // =============================================
@@ -1124,8 +1278,17 @@ function fallbackCopy(text) {
     document.body.removeChild(ta);
 }
 
-function captureTable() {
-    const el = document.getElementById('resultArea');
+function captureTable(full = false) {
+    if (!_quoteIsCurrent) { alert('內容已修改，請重新產生報價'); return Promise.reject(); }
+    const result = document.getElementById('resultArea');
+    const el = full ? document.getElementById('fullQuoteArea') : result;
+    if (full) {
+        el.innerHTML = '';
+        el.appendChild(result.cloneNode(true));
+        const policy = document.getElementById('policyDisplay').cloneNode(true);
+        policy.style.marginTop = '18px';
+        el.appendChild(policy);
+    }
     if (!el.innerHTML) { alert('請先產生報價明細'); return Promise.reject(); }
     const clone = el.cloneNode(true);
     clone.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;background:#fff;padding:20px;z-index:-1;';
@@ -1141,8 +1304,8 @@ function getFileName() {
     return `${names}${date}.png`;
 }
 
-function downloadImage() {
-    captureTable().then(c => {
+function downloadImage(full = false) {
+    captureTable(full).then(c => {
         const a = document.createElement('a');
         a.download = getFileName(); a.href = c.toDataURL('image/png');
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -1150,8 +1313,8 @@ function downloadImage() {
 }
 
 function shareImage() {
-    if (!navigator.share) { downloadImage(); return; }
-    captureTable().then(c => {
+    if (!navigator.share) { downloadImage(true); return; }
+    captureTable(true).then(c => {
         c.toBlob(blob => {
             const file = new File([blob], getFileName(), { type: 'image/png' });
             if (navigator.canShare?.({ files: [file] })) {
@@ -1171,7 +1334,11 @@ window.onload = async function () {
     const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     document.getElementById('startDate').value = fmt(s);
     document.getElementById('endDate').value   = fmt(e);
+    document.getElementById('quoteDate').value = fmt(today);
+    document.getElementById('holidayImportYear').value = today.getFullYear() + 1;
     await Promise.all([loadCatsFromCloud(), loadSettingsFromCloud()]);
+    document.getElementById('catNames').disabled = false;
+    document.getElementById('catNameStatus').textContent = '';
     addTransportEntry();
     renderSchedule();
 
@@ -1180,6 +1347,15 @@ window.onload = async function () {
     document.getElementById('catNames').addEventListener('change', function() {
         const val = this.value.replace(/\s/g, '').trim();
         const cat = _cats.find(c => c.name === val);
+        const parsedNames = val.split('/').filter(Boolean);
+        const status = document.getElementById('catNameStatus');
+        status.textContent = val
+            ? cat ? `已辨識：${parsedNames.join('、')}，共 ${parsedNames.length} 隻` : '此名稱不在貓咪名單中，請問是否新增？'
+            : '';
+        if (val && !cat) {
+            if (confirm('此名稱不在貓咪名單中，請問是否新增？')) openCatDrawer(val, true);
+            else _allowUnlistedCat = val;
+        } else _allowUnlistedCat = '';
         const reminder = document.getElementById('transportReminder');
         const activeFees = cat && cat.fees ? cat.fees.filter(f => f.fee > 0) : [];
         _currentCatFees = activeFees;
@@ -1218,4 +1394,7 @@ window.onload = async function () {
         toggleTransportConfigFor(select);
         entry.querySelector('.transport-fee').value = match.fee;
     });
+
+    document.getElementById('tab-calc').addEventListener('input', invalidateQuote);
+    document.getElementById('tab-calc').addEventListener('change', invalidateQuote);
 };

@@ -1,5 +1,60 @@
 export const MAX_BODY_BYTES = 256 * 1024;
 
+function parseCsvLine(line) {
+  const values = [];
+  let value = '';
+  let quoted = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    if (char === '"' && quoted && line[i + 1] === '"') { value += '"'; i += 1; }
+    else if (char === '"') quoted = !quoted;
+    else if (char === ',' && !quoted) { values.push(value.trim()); value = ''; }
+    else value += char;
+  }
+  values.push(value.trim());
+  return values;
+}
+
+function addDays(ymd, days) {
+  const date = new Date(`${ymd}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+export function parseOfficialHolidayCsv(csv, year) {
+  const lines = csv.replace(/^\uFEFF/, '').split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) throw new Error('official_csv_empty');
+  const headers = parseCsvLine(lines[0]);
+  const dateIndex = headers.findIndex(value => value.includes('西元日期'));
+  const holidayIndex = headers.findIndex(value => value.includes('是否放假'));
+  const noteIndex = headers.findIndex(value => value.includes('備註'));
+  if (dateIndex < 0 || holidayIndex < 0 || noteIndex < 0) throw new Error('official_csv_schema_changed');
+  const rows = lines.slice(1).map(parseCsvLine).map(cols => {
+    const digits = String(cols[dateIndex]).replace(/\D/g, '');
+    return {
+      date: digits.length === 8 ? `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}` : '',
+      holiday: cols[holidayIndex] === '2',
+      note: cols[noteIndex] || '',
+    };
+  }).filter(row => row.date.startsWith(`${year}-`));
+  const byDate = new Map(rows.map(row => [row.date, row]));
+  const seeds = rows.filter(row => row.holiday && row.note && !/星期[六日]|例假日/.test(row.note));
+  const blocks = [];
+  for (const seed of seeds) {
+    let start = seed.date;
+    let end = seed.date;
+    while (byDate.get(addDays(start, -1))?.holiday) start = addDays(start, -1);
+    while (byDate.get(addDays(end, 1))?.holiday) end = addDays(end, 1);
+    const existing = blocks.find(block => start <= addDays(block.end, 1) && end >= addDays(block.start, -1));
+    if (existing) {
+      existing.start = existing.start < start ? existing.start : start;
+      existing.end = existing.end > end ? existing.end : end;
+      if (!existing.names.includes(seed.note)) existing.names.push(seed.note);
+    } else blocks.push({ start, end, names: [seed.note] });
+  }
+  return blocks.map(block => ({ name: block.names.join('、'), officialStart: block.start, officialEnd: block.end }));
+}
+
 export function isValidCats(value) {
   return Array.isArray(value) && value.length <= 5000 && value.every(cat => {
     if (!cat || typeof cat !== 'object' || typeof cat.name !== 'string') return false;

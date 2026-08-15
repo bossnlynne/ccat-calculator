@@ -79,6 +79,18 @@ button { font-family: inherit; cursor: pointer; }
 .btn-sm { padding: 6px 14px; border-radius: 6px; border: none; font-size: 0.875em; font-weight: 600; }
 .btn-primary-sm { background: #7B5E52; color: #fff; }
 .btn-danger-sm  { background: #8B3A3A; color: #fff; }
+.status-badge { display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:700;background:#E8DDD0;color:#5C4A42; }
+.status-badge.archived { background:#EEE;color:#777; }
+.status-badge.draft { background:#FFF0C9;color:#7B5E00; }
+.rate-period-card.is-archived, .holiday-row.is-archived { opacity:.68;background:#F4F4F4; }
+.settings-action-row,.holiday-import-row { display:flex;gap:8px;align-items:center;flex-wrap:wrap; }
+.holiday-import-row input { width:140px; }
+.import-preview { margin:10px 0;padding:12px;border:1px solid #C5A882;border-radius:8px;background:#FBF5EC;line-height:1.7; }
+.manager-reason { display:block;font-size:12px;color:#7B5E52;margin-top:2px; }
+.full-quote-export { position:absolute;left:-99999px;top:0;width:800px;background:#fff;padding:24px; }
+.quote-meta { display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;margin:0 0 14px;font-size:14px; }
+.quote-meta strong { color:#5C4A42; }
+.quote-title { background:#7B5E52;color:#fff;text-align:center;font-size:18px;font-weight:700;padding:12px;margin-bottom:14px; }
 .btn-ghost-sm   { background: #F6F0E8; color: #5C4A42; border: 1px solid #C5A882; }
 
 /* Schedule */
