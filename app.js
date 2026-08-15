@@ -1092,6 +1092,10 @@ function calculate() {
     }
     if (!document.getElementById('quoteDate').value) { alert('請填寫報價日期'); return; }
 
+    const quoteDateValue = document.getElementById('quoteDate').value;
+    const serviceStartValue = document.getElementById('startDate').value;
+    if (quoteDateValue > serviceStartValue && !confirm('報價日晚於服務首日，這份報價單將視為回溯產出，付款期限會留空。是否繼續？')) return;
+
     const s           = getSettings();
     const HOLIDAY_FEE   = s.holidayFee;
     const MULTI_CAT_FEE = s.multiCatFee;
@@ -1160,7 +1164,7 @@ function calculate() {
     const dateRangeDisplay = fmtRange(startStr, endStr);
     const startYear = startStr.slice(0, 4);
     const endYear = endStr.slice(0, 4);
-    const quoteDate = document.getElementById('quoteDate').value;
+    const quoteDate = quoteDateValue;
     const deadlineText = getPaymentDeadlineText();
     const fullServiceRange = startYear === endYear
         ? `${startYear}/${startStr.slice(5).replace('-', '/')}～${endStr.slice(5).replace('-', '/')}`
@@ -1172,7 +1176,7 @@ function calculate() {
             <div><strong>報價日期：</strong>${escapeHtml(quoteDate.replaceAll('-', '/'))}</div>
             <div><strong>服務期間：</strong>${escapeHtml(fullServiceRange)}</div>
             <div><strong>服務對象：</strong>${escapeHtml(cats.join('、'))}（共 ${catCount} 隻）</div>
-            <div><strong>付款期限：</strong>${escapeHtml(deadlineText.replace(/^確認後請於 | 以前付款，謝謝🧡$/g, ''))}</div>
+            <div><strong>付款期限：</strong>${escapeHtml(deadlineText || '')}</div>
         </div>
         <table>
             <thead>
@@ -1216,9 +1220,8 @@ function calculate() {
 
     // 顯示可編輯的政策文字
     const policyEl = document.getElementById('policyDisplay');
-    const deadline = getPaymentDeadlineText();
     const policyText = getSettings().copyText || DEFAULT_COPY_TEXT;
-    policyEl.textContent = deadline ? `${deadline}\n\n${policyText}` : policyText;
+    policyEl.textContent = `請確認費用明細並於期限內完成付款，謝謝🧡\n\n${policyText}`;
     document.getElementById('policyContainer').style.display = 'block';
 }
 
@@ -1226,19 +1229,19 @@ function getPaymentDeadlineText() {
     const startVal = document.getElementById('startDate').value;
     if (!startVal) return '';
     const quoteValue = document.getElementById('quoteDate').value;
-    const today = quoteValue ? new Date(`${quoteValue}T00:00:00`) : new Date();
-    today.setHours(0, 0, 0, 0);
-    const start = new Date(startVal);
+    if (!quoteValue || quoteValue > startVal) return '';
+    if (quoteValue === startVal) return startVal.replaceAll('-', '/');
+    const quoteDate = new Date(`${quoteValue}T00:00:00`);
+    const start = new Date(`${startVal}T00:00:00`);
 
-    const defaultDeadline = new Date(today);
-    defaultDeadline.setDate(today.getDate() + 7);
+    const defaultDeadline = new Date(quoteDate);
+    defaultDeadline.setDate(quoteDate.getDate() + 7);
 
     const latestDeadline = new Date(start);
     latestDeadline.setDate(start.getDate() - 1);
 
-    let deadline = defaultDeadline >= start ? latestDeadline : defaultDeadline;
-    if (deadline < today) deadline = today;
-    return `確認後請於 ${deadline.getFullYear()}/${deadline.getMonth() + 1}/${deadline.getDate()} 以前付款，謝謝🧡`;
+    const deadline = defaultDeadline > latestDeadline ? latestDeadline : defaultDeadline;
+    return `${deadline.getFullYear()}/${deadline.getMonth() + 1}/${deadline.getDate()}`;
 }
 
 function rowHtml(name, price, qty, unit, total, note) {
@@ -1256,9 +1259,8 @@ function quoteRowHtml(name, pricing, quantity, total, note) {
 // 複製 / 截圖 / 分享
 // =============================================
 function copyPolicyText() {
-    const deadline = getPaymentDeadlineText();
     const base = getSettings().copyText || DEFAULT_COPY_TEXT;
-    const text = deadline ? `${deadline}\n\n${base}` : base;
+    const text = `請確認費用明細並於期限內完成付款，謝謝🧡\n\n${base}`;
     if (navigator.clipboard?.writeText) {
         navigator.clipboard.writeText(text)
             .then(() => alert('✅ 已成功複製！可直接貼上至 LINE。'))
@@ -1278,17 +1280,10 @@ function fallbackCopy(text) {
     document.body.removeChild(ta);
 }
 
-function captureTable(full = false) {
+function captureTable() {
     if (!_quoteIsCurrent) { alert('內容已修改，請重新產生報價'); return Promise.reject(); }
     const result = document.getElementById('resultArea');
-    const el = full ? document.getElementById('fullQuoteArea') : result;
-    if (full) {
-        el.innerHTML = '';
-        el.appendChild(result.cloneNode(true));
-        const policy = document.getElementById('policyDisplay').cloneNode(true);
-        policy.style.marginTop = '18px';
-        el.appendChild(policy);
-    }
+    const el = result;
     if (!el.innerHTML) { alert('請先產生報價明細'); return Promise.reject(); }
     const clone = el.cloneNode(true);
     clone.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;background:#fff;padding:20px;z-index:-1;';
@@ -1304,8 +1299,8 @@ function getFileName() {
     return `${names}${date}.png`;
 }
 
-function downloadImage(full = false) {
-    captureTable(full).then(c => {
+function downloadImage() {
+    captureTable().then(c => {
         const a = document.createElement('a');
         a.download = getFileName(); a.href = c.toDataURL('image/png');
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -1313,8 +1308,8 @@ function downloadImage(full = false) {
 }
 
 function shareImage() {
-    if (!navigator.share) { downloadImage(true); return; }
-    captureTable(true).then(c => {
+    if (!navigator.share) { downloadImage(); return; }
+    captureTable().then(c => {
         c.toBlob(blob => {
             const file = new File([blob], getFileName(), { type: 'image/png' });
             if (navigator.canShare?.({ files: [file] })) {

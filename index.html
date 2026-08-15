@@ -89,9 +89,8 @@
                 <button class="btn btn-calc" onclick="calculate()">產生報價明細</button>
             </div>
             <div id="actionButtons" class="action-buttons">
-                <button class="btn btn-download" onclick="downloadImage(false)">下載費用明細</button>
-                <button class="btn btn-download" onclick="downloadImage(true)">下載完整報價</button>
-                <button class="btn btn-share" onclick="shareImage()">分享完整報價</button>
+                <button class="btn btn-download" onclick="downloadImage()">下載圖片</button>
+                <button class="btn btn-share" onclick="shareImage()">分享報價</button>
             </div>
             <div id="quoteStaleNotice" class="note-text" style="display:none;text-align:center;margin-top:10px;color:#8B3A3A">內容已修改，請重新產生報價</div>
 
@@ -289,7 +288,6 @@
     </div>
 </div>
 
-<div id="fullQuoteArea" class="full-quote-export" aria-hidden="true"></div>
 
 <datalist id="catList"></datalist>
 
