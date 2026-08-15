@@ -10,6 +10,20 @@
       "id": "4815d0f93a004d97a80142bfdf481987"
     }
   ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "CCAT_STORE",
+        "class_name": "CcatStore"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["CcatStore"]
+    }
+  ],
   "observability": {
     "enabled": true,
     "logs": { "head_sampling_rate": 1 },

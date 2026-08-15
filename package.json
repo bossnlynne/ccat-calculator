@@ -1,0 +1,9 @@
+{
+  "name": "ccat-calculator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check worker.js && node --test"
+  }
+}

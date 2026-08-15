@@ -1,0 +1,236 @@
+/* ── 色彩變數（大地色系，4色）──
+   --cream  #F6F0E8  頁面底色、淺填充
+   --brown  #7B5E52  主要強調色
+   --sand   #C5A882  邊框、分隔線
+   --dark   #2D2116  文字
+── */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+    font-family: "Microsoft JhengHei", "PingFang TC", Arial, sans-serif;
+    background: #F6F0E8;
+    margin: 0;
+    padding: 16px;
+    color: #2D2116;
+    font-size: 15px;
+}
+.container {
+    max-width: 780px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(45,33,22,0.10);
+    overflow: hidden;
+}
+
+/* Header & Tabs */
+.app-header { padding: 24px 28px 0; }
+.app-header h2 { margin: 0 0 20px; font-size: 1.2em; font-weight: 700; color: #2D2116; text-align: center; letter-spacing: 0.02em; }
+.tabs { display: flex; border-bottom: 1.5px solid #C5A882; margin: 0 -28px; padding: 0 28px; }
+.tab-btn { padding: 10px 20px; border: none; background: none; font-size: 0.95em; font-weight: 600; color: #9B8A80; cursor: pointer; border-bottom: 2.5px solid transparent; margin-bottom: -1.5px; transition: color 0.2s, border-color 0.2s; font-family: inherit; }
+.tab-btn.active { color: #7B5E52; border-bottom-color: #7B5E52; }
+.tab-btn:hover:not(.active) { color: #5C4A42; }
+
+/* Tab Content */
+.tab-content { padding: 24px 28px 28px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Form Elements */
+.input-group { margin-bottom: 14px; }
+label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.875em; color: #5C4A42; }
+input[type="text"], input[type="number"], input[type="date"], input[type="password"], select, textarea {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; padding: 9px 12px;
+    border: 1.5px solid #C5A882; border-radius: 8px;
+    font-size: 15px; background: #fff; color: #2D2116;
+    font-family: inherit; transition: border-color 0.2s; outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: #7B5E52; }
+select {
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22292%22 height%3D%22292%22%3E%3Cpath fill%3D%22%235C4A42%22 d%3D%22M287 69.4a17.6 17.6 0 0 0-13-5.4H18.4c-5 0-9.3 1.8-12.9 5.4A17.6 17.6 0 0 0 0 82.2c0 5 1.8 9.3 5.4 12.9l128 127.9c3.6 3.6 7.8 5.4 12.8 5.4s9.2-1.8 12.8-5.4L287 95c3.5-3.5 5.4-7.8 5.4-12.8 0-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat; background-position: right 10px center; background-size: 11px auto; padding-right: 32px;
+}
+textarea { resize: vertical; line-height: 1.6; }
+.flex-row { display: flex; gap: 12px; }
+.hidden { display: none; }
+
+/* Cards */
+.card { background: #F6F0E8; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+.card-yellow { background: #FBF5EC; border: 1px solid #C5A882; }
+.card-green  { background: #F6F0E8; border: 1px solid #C5A882; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: #2D2116; color: #F6F0E8; padding: 10px 20px; border-radius: 8px; font-size: 0.875em; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 300; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+/* Buttons */
+button { font-family: inherit; cursor: pointer; }
+.btn-group { display: flex; gap: 10px; margin-top: 18px; justify-content: center; flex-wrap: wrap; }
+.action-buttons { display: none; gap: 10px; margin-top: 14px; justify-content: center; flex-wrap: wrap; }
+.btn { padding: 10px 0; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; transition: 0.2s; width: 7.5em; text-align: center; }
+.btn:hover { filter: brightness(0.93); transform: translateY(-1px); }
+.btn-calc     { background: #7B5E52; color: #fff; }
+.btn-setting  { background: #F6F0E8; color: #5C4A42; border: 1.5px solid #C5A882; }
+.btn-download { background: #7B5E52; color: #fff; }
+.btn-share    { background: #F6F0E8; color: #5C4A42; border: 1.5px solid #C5A882; }
+.btn-copy-main { padding: 10px 22px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; background: #C5A882; color: #2D2116; transition: 0.2s; }
+.btn-copy-main:hover { filter: brightness(0.93); }
+.btn-outline { background: #fff; border: 1.5px solid #7B5E52; color: #7B5E52; font-size: 0.875em; padding: 6px 12px; border-radius: 6px; font-weight: 600; }
+.btn-outline:hover { background: #F6F0E8; }
+.btn-sm { padding: 6px 14px; border-radius: 6px; border: none; font-size: 0.875em; font-weight: 600; }
+.btn-primary-sm { background: #7B5E52; color: #fff; }
+.btn-danger-sm  { background: #8B3A3A; color: #fff; }
+.btn-ghost-sm   { background: #F6F0E8; color: #5C4A42; border: 1px solid #C5A882; }
+
+/* Schedule */
+#schedule-container { margin-top: 18px; background: #F6F0E8; border-radius: 10px; border: 1.5px solid #C5A882; padding: 14px 16px; display: none; }
+.schedule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.schedule-header h3 { margin: 0; color: #7B5E52; font-size: 1em; }
+.quick-btn-group { display: flex; gap: 6px; }
+.day-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #C5A882; }
+.day-row:last-child { border-bottom: none; }
+.day-label { font-weight: 600; color: #5C4A42; width: 180px; font-size: 0.95em; }
+.day-select { flex: 1; max-width: 200px; }
+.tag { font-size: 0.78em; font-weight: 700; margin-left: 5px; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+.tag-holiday { color: #5C4A42; background: #E8D5B7; }
+.tag-special  { color: #fff; background: #7B5E52; }
+
+/* Result table */
+#resultArea { background: #fff; padding: 10px 0; border-radius: 6px; }
+.table-responsive { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; border: 2px solid #2D2116; min-width: 500px; color: #2D2116; }
+th, td { border: 1px solid #C5A882; padding: 9px 10px; text-align: left; }
+.title-row { background: #fff; text-align: center; font-weight: 700; font-size: 1.05em; border-bottom: 2px solid #2D2116; }
+.header-row { background: #F6F0E8; color: #5C4A42; font-weight: 600; }
+.total-row { font-weight: 700; background: #F6F0E8; }
+.note-text { font-size: 0.82em; color: #9B8A80; margin-top: 4px; }
+.policy-text { font-size: 0.9em; color: #5C4A42; line-height: 1.7; background: #F6F0E8; padding: 14px 16px; border-radius: 10px; border: 1.5px dashed #C5A882; white-space: pre-wrap; }
+.copy-button-container { text-align: center; margin-top: 18px; margin-bottom: 10px; }
+
+/* Settings Lock */
+.settings-lock { text-align: center; padding: 40px 20px; }
+.lock-icon { font-size: 2.5em; margin-bottom: 12px; }
+.lock-title { font-size: 1.05em; font-weight: 600; color: #5C4A42; margin-bottom: 16px; }
+.lock-input-row { display: flex; gap: 8px; max-width: 260px; margin: 0 auto; }
+.lock-input-row input { flex: 1; text-align: center; letter-spacing: 4px; font-size: 1.1em; }
+.lock-error { color: #8B3A3A; font-size: 0.85em; margin-top: 8px; min-height: 1.2em; }
+
+/* Settings Content */
+.settings-content { display: none; }
+.settings-section { margin-bottom: 28px; }
+.settings-section h3 { font-size: 0.95em; font-weight: 700; color: #5C4A42; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1.5px solid #C5A882; }
+
+/* Rate Period Cards */
+.rate-period-card {
+    background: #F6F0E8;
+    border: 1.5px solid #C5A882;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+}
+.rate-period-card .card-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.rate-period-card .card-top .period-name { flex: 1; }
+.rate-period-card .card-top .period-name input { font-weight: 600; }
+.rate-period-card .card-top .period-dates {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 2;
+}
+.rate-period-card .card-top .period-dates input { flex: 1; }
+.period-dash { color: #9B8A80; font-size: 0.85em; flex-shrink: 0; }
+.rate-period-card .card-rates {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+}
+.rate-period-card .card-rates label { font-size: 0.8em; }
+
+/* Fee grid */
+.fee-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.fee-item label { font-size: 0.82em; }
+
+/* Holiday range list */
+.holiday-list { display: flex; flex-direction: column; gap: 6px; }
+.holiday-row { display: flex; align-items: center; gap: 8px; background: #F6F0E8; border-radius: 8px; padding: 8px 10px; border: 1px solid #C5A882; }
+.holiday-row .holiday-name { width: 90px; }
+.holiday-row .holiday-name input { font-size: 0.88em; }
+.holiday-row .holiday-dash { color: #9B8A80; font-size: 0.85em; flex-shrink: 0; }
+.holiday-row .holiday-date { flex: 1; }
+.holiday-row .holiday-date input { font-size: 0.88em; }
+
+.add-row-btn { display: flex; align-items: center; gap: 6px; background: none; border: 1.5px dashed #C5A882; border-radius: 8px; padding: 8px 14px; color: #9B8A80; font-size: 0.875em; font-weight: 600; width: 100%; justify-content: center; margin-top: 4px; transition: 0.2s; }
+.add-row-btn:hover { border-color: #7B5E52; color: #7B5E52; background: #F6F0E8; }
+
+.settings-save-bar { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; padding-top: 18px; border-top: 1.5px solid #C5A882; }
+
+/* Cat database UI */
+.cats-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.cats-header-desc { font-size: 0.85em; color: #9B8A80; flex: 1; min-width: 0; padding-top: 4px; }
+.cats-header-btns { display: flex; gap: 8px; flex-shrink: 0; }
+.cats-toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.cats-toolbar .cats-search { position: relative; flex: 1; min-width: 160px; }
+.cats-toolbar .cats-search input { padding-left: 30px; }
+.cats-toolbar .cats-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #9B8A80; font-size: 13px; pointer-events: none; }
+.cats-toolbar select { width: auto; flex-shrink: 0; }
+.cats-selection-bar { display: flex; align-items: center; gap: 10px; background: #F6F0E8; border: 1.5px solid #C5A882; border-radius: 8px; padding: 8px 14px; margin-bottom: 12px; font-size: 0.875em; color: #5C4A42; flex-wrap: wrap; }
+.cats-selection-bar span { flex: 1; }
+.cats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.cat-card { display: flex; align-items: center; background: #fff; border: 1.5px solid #C5A882; border-radius: 8px; overflow: hidden; transition: border-color 0.15s, background 0.15s; }
+.cat-card.selected { background: #F6F0E8; border-color: #7B5E52; }
+.cat-card-label { display: flex; align-items: center; gap: 7px; flex: 1; padding: 7px 4px 7px 9px; cursor: default; min-width: 0; }
+.cat-card-checkbox { width: 15px; height: 15px; flex-shrink: 0; accent-color: #7B5E52; cursor: pointer; }
+.cat-card-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #2D2116; font-size: 0.875em; font-weight: 500; cursor: pointer; }
+.cat-card-name:hover { color: #7B5E52; }
+.cat-card-fee { font-size: 0.78em; color: #7B5E52; padding: 0 8px; flex-shrink: 0; cursor: pointer; white-space: nowrap; }
+.cat-card-fee:hover { color: #4A3728; }
+.cat-card-del { background: none; border: none; border-left: 1px solid #E8DDD0; color: #C5A882; font-size: 15px; padding: 7px 9px; cursor: pointer; flex-shrink: 0; transition: color 0.15s, background 0.15s; line-height: 1; align-self: stretch; }
+/* Cat Edit Drawer */
+.cat-drawer-overlay { position: fixed; inset: 0; background: rgba(45,33,22,0.35); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.22s; }
+.cat-drawer-overlay.open { opacity: 1; pointer-events: all; }
+.cat-drawer { position: fixed; top: 0; right: 0; height: 100%; width: 300px; max-width: 92vw; background: #fff; box-shadow: -4px 0 24px rgba(45,33,22,0.15); z-index: 201; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); display: flex; flex-direction: column; }
+.cat-drawer.open { transform: translateX(0); }
+.cat-drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 20px 16px; border-bottom: 1.5px solid #C5A882; }
+.cat-drawer-header h3 { margin: 0; font-size: 1em; font-weight: 700; color: #2D2116; }
+.cat-drawer-close { background: none; border: none; font-size: 22px; color: #9B8A80; cursor: pointer; padding: 0 2px; line-height: 1; transition: color 0.15s; }
+.cat-drawer-close:hover { color: #2D2116; }
+.cat-drawer-body { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+.cat-drawer-current { background: #F6F0E8; border-radius: 8px; padding: 11px 14px; font-size: 0.875em; color: #5C4A42; word-break: break-word; line-height: 1.6; border: 1.5px solid #E8DDD0; }
+.cat-drawer-footer { padding: 16px 20px; border-top: 1.5px solid #C5A882; display: flex; gap: 8px; }
+.cat-card-del:hover { color: #8B3A3A; background: #FDF0EE; }
+.cat-add-row { display: flex; gap: 8px; align-items: center; }
+.cat-add-row input { flex: 1; }
+.cat-add-row .btn-sm { white-space: nowrap; flex-shrink: 0; }
+/* Drawer caretaker fee rows */
+.drawer-fee-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.drawer-fee-row .fee-caretaker { flex: 1.2; }
+.drawer-fee-row .fee-amount { width: 90px; flex-shrink: 0; }
+/* Transport reminder */
+#transportReminder { display: none; font-size: 0.85em; color: #B06020; background: #FBF5EC; border: 1px solid #C5A882; border-radius: 6px; padding: 6px 12px; margin-bottom: 8px; }
+@media (max-width: 600px) { .cats-grid { grid-template-columns: 1fr; } }
+
+/* Mobile */
+@media (max-width: 600px) {
+    body { padding: 8px; }
+    .tab-content { padding: 18px 16px 24px; }
+    .app-header { padding: 18px 16px 0; }
+    .tabs { margin: 0 -16px; padding: 0 16px; }
+    .flex-row { flex-direction: column; gap: 0; }
+    .flex-row .input-group { margin-bottom: 14px; }
+    .day-row { flex-direction: column; align-items: flex-start; gap: 5px; }
+    .day-label { width: 100%; }
+    .day-select { max-width: 100%; width: 100%; }
+    .schedule-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .quick-btn-group { width: 100%; }
+    .btn-outline { flex: 1; text-align: center; }
+    .fee-grid { grid-template-columns: 1fr 1fr; }
+    .rate-period-card .card-top { flex-wrap: wrap; }
+    .rate-period-card .card-top .period-dates { flex: 1 1 100%; }
+    .rate-period-card .card-rates { grid-template-columns: 1fr 1fr; }
+    .holiday-row { flex-wrap: wrap; }
+    .holiday-row .holiday-name { width: 100%; }
+}
