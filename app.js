@@ -974,6 +974,7 @@ function onStartDateChange() {
         d.setDate(d.getDate() + 3);
         endInput.value = d.toISOString().split('T')[0];
     }
+    updatePaymentDeadlineDefault();
     renderSchedule();
 }
 
@@ -1094,7 +1095,7 @@ function calculate() {
 
     const quoteDateValue = document.getElementById('quoteDate').value;
     const serviceStartValue = document.getElementById('startDate').value;
-    if (quoteDateValue > serviceStartValue && !confirm('報價日晚於服務首日，這份報價單將視為回溯產出，付款期限會留空。是否繼續？')) return;
+    if (quoteDateValue > serviceStartValue && !confirm('報價日晚於服務首日，這份報價單將視為回溯產出。是否繼續？')) return;
 
     const s           = getSettings();
     const HOLIDAY_FEE   = s.holidayFee;
@@ -1165,7 +1166,8 @@ function calculate() {
     const startYear = startStr.slice(0, 4);
     const endYear = endStr.slice(0, 4);
     const quoteDate = quoteDateValue;
-    const deadlineText = getPaymentDeadlineText();
+    const paymentDeadline = document.getElementById('paymentDeadline').value;
+    const deadlineText = paymentDeadline ? paymentDeadline.replaceAll('-', '/') : '';
     const fullServiceRange = startYear === endYear
         ? `${startYear}/${startStr.slice(5).replace('-', '/')}～${endStr.slice(5).replace('-', '/')}`
         : `${startStr.replaceAll('-', '/')}～${endStr.replaceAll('-', '/')}`;
@@ -1225,12 +1227,12 @@ function calculate() {
     document.getElementById('policyContainer').style.display = 'block';
 }
 
-function getPaymentDeadlineText() {
+function getDefaultPaymentDeadline() {
     const startVal = document.getElementById('startDate').value;
     if (!startVal) return '';
     const quoteValue = document.getElementById('quoteDate').value;
     if (!quoteValue || quoteValue > startVal) return '';
-    if (quoteValue === startVal) return startVal.replaceAll('-', '/');
+    if (quoteValue === startVal) return startVal;
     const quoteDate = new Date(`${quoteValue}T00:00:00`);
     const start = new Date(`${startVal}T00:00:00`);
 
@@ -1241,7 +1243,11 @@ function getPaymentDeadlineText() {
     latestDeadline.setDate(start.getDate() - 1);
 
     const deadline = defaultDeadline > latestDeadline ? latestDeadline : defaultDeadline;
-    return `${deadline.getFullYear()}/${deadline.getMonth() + 1}/${deadline.getDate()}`;
+    return `${deadline.getFullYear()}-${String(deadline.getMonth() + 1).padStart(2, '0')}-${String(deadline.getDate()).padStart(2, '0')}`;
+}
+
+function updatePaymentDeadlineDefault() {
+    document.getElementById('paymentDeadline').value = getDefaultPaymentDeadline();
 }
 
 function rowHtml(name, price, qty, unit, total, note) {
@@ -1330,6 +1336,7 @@ window.onload = async function () {
     document.getElementById('startDate').value = fmt(s);
     document.getElementById('endDate').value   = fmt(e);
     document.getElementById('quoteDate').value = fmt(today);
+    updatePaymentDeadlineDefault();
     document.getElementById('holidayImportYear').value = today.getFullYear() + 1;
     await Promise.all([loadCatsFromCloud(), loadSettingsFromCloud()]);
     document.getElementById('catNames').disabled = false;

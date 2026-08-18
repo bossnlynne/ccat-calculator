@@ -26,7 +26,12 @@
         <div id="tab-calc" class="tab-panel active">
             <div class="input-group">
                 <label>報價日期</label>
-                <input type="date" id="quoteDate">
+                <input type="date" id="quoteDate" onchange="updatePaymentDeadlineDefault()">
+            </div>
+            <div class="input-group">
+                <label>付款期限</label>
+                <input type="date" id="paymentDeadline">
+                <div class="note-text">依付款期限規則自動帶入，可自行修改或留空</div>
             </div>
             <div class="input-group">
                 <label>貓咪名字（用 / 分隔）</label>
