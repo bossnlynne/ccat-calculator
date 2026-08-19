@@ -130,8 +130,10 @@ async function getRecord(env, key, fallback) {
   );
 }
 
-async function writeRecord(request, env, key, validator) {
-  if (!(await isAuthorized(request, env))) return json(request, env, { error: 'unauthorized' }, 401);
+async function writeRecord(request, env, key, validator, authRequired) {
+  if (authRequired && !(await isAuthorized(request, env))) {
+    return json(request, env, { error: 'unauthorized' }, 401);
+  }
 
   let value;
   try {
@@ -196,8 +198,8 @@ async function handleRequest(request, env) {
   }
 
   const routes = {
-    '/cats': { key: 'cats', fallback: [], validator: isValidCats },
-    '/settings': { key: 'settings', fallback: {}, validator: isValidSettings },
+    '/cats': { key: 'cats', fallback: [], validator: isValidCats, authRequired: false },
+    '/settings': { key: 'settings', fallback: {}, validator: isValidSettings, authRequired: true },
   };
   const route = routes[url.pathname];
   if (!route) return json(request, env, { error: 'not_found' }, 404);
@@ -212,7 +214,9 @@ async function handleRequest(request, env) {
       },
     });
   }
-  if (request.method === 'POST') return writeRecord(request, env, route.key, route.validator);
+  if (request.method === 'POST') {
+    return writeRecord(request, env, route.key, route.validator, route.authRequired);
+  }
   return json(request, env, { error: 'method_not_allowed' }, 405, { Allow: 'GET, POST, OPTIONS' });
 }
 

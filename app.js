@@ -69,27 +69,15 @@ async function loadCatsFromCloud() {
 function getCats() { return _cats; }
 
 async function saveCats(nextCats = _cats) {
-    const adminKey = await ensureAdminAuth();
-    if (!adminKey) {
-        await loadCatsFromCloud();
-        return false;
-    }
     try {
         const res = await fetch(CATS_API, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Admin-Key': adminKey,
                 'X-Data-Version': _catsRevision,
             },
             body: JSON.stringify(nextCats),
         });
-        if (res.status === 401) {
-            sessionStorage.removeItem('admin_key');
-            await loadCatsFromCloud();
-            showToast('管理密碼錯誤，未同步變更');
-            return false;
-        }
         if (res.status === 409) {
             await loadCatsFromCloud();
             showToast('名單已被其他管理師更新，已載入最新版');

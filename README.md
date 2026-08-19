@@ -6,10 +6,9 @@
 
 > 最後確認：2026-08-16
 
-- 原始碼已包含貓咪名單、費率、節假日與付款文字的跨裝置同步功能。
-- 線上 Netlify 正式站目前仍是先前的穩定版本，尚未包含本專案目錄中的最新同步功能。
-- 線上 Cloudflare Worker 目前仍是舊版，只提供 `/cats`；本專案的 `worker.js`（包含 `/auth`、`/cats`、`/settings`）尚未部署。
-- 未完成 Worker 更新前，不應先發布新版前端，否則設定頁的共用儲存會失敗。
+- 貓咪名單、費率、節假日與付款文字皆支援跨裝置同步。
+- 貓咪名單操作不需管理密碼；設定頁與共用營運設定寫入仍需管理密碼。
+- Netlify 正式站與 Cloudflare Worker 已啟用目前的同步架構。
 
 正式站：<https://ccats-calculator.netlify.app>
 
@@ -39,7 +38,7 @@
 | Cloudflare KV `CCAT_CATS` | 舊版資料來源，只在 Durable Object 尚無資料時遷移 |
 | Netlify | 託管靜態前端 |
 
-瀏覽器啟動時會同時讀取 `/cats` 與 `/settings`。讀取失敗時使用該裝置的本機快取；寫入則一定需要管理密碼，失敗時不應把本機修改視為已同步。
+瀏覽器啟動時會同時讀取 `/cats` 與 `/settings`。讀取失敗時使用該裝置的本機快取。貓咪名單可直接寫入；共用營運設定寫入需要管理密碼。任何寫入失敗時都不應把本機修改視為已同步。
 
 ## 本機預覽
 
@@ -68,7 +67,7 @@ python3 -m http.server 3456
 | --- | --- | --- | --- |
 | `POST` | `/auth` | 驗證管理密碼 | `X-Admin-Key` |
 | `GET` | `/cats` | 讀取貓咪及交通費名單 | 無 |
-| `POST` | `/cats` | 寫入完整貓咪名單 | 管理密碼與 `X-Data-Version` |
+| `POST` | `/cats` | 寫入完整貓咪名單 | `X-Data-Version` |
 | `GET` | `/settings` | 讀取費率、節假日與付款文字 | 無 |
 | `POST` | `/settings` | 寫入完整共用設定 | 管理密碼與 `X-Data-Version` |
 | `GET` | `/official-holidays?year=2027` | 從官方資料集取得指定年度國定假日區間 | 無 |
@@ -128,7 +127,7 @@ git diff --check
 
 ## 已知限制與待辦
 
-- `/auth` 與寫入 API 尚無 rate limiting，管理密碼可能遭大量嘗試；應加入 Cloudflare Rate Limiting、Turnstile 或 Access 等保護。
+- `/auth` 與寫入 API 尚無 rate limiting；設定密碼可能遭大量嘗試，免密碼的貓咪名單寫入也可能被濫用。應視需要加入 Cloudflare Rate Limiting、Turnstile 或 Access 等保護。
 - 目前自動化測試涵蓋資料驗證與 CORS；完整計算、Durable Object 整合及瀏覽器操作仍需補測。
 - Content Security Policy 因既有 inline 事件處理仍需允許 `unsafe-inline`；後續可全面改為 `addEventListener` 再收緊規則。
 
