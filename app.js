@@ -870,7 +870,7 @@ function addTransportEntry() {
         </div>
         <div class="input-group">
             <label>交通費設定</label>
-            <select onchange="toggleTransportConfigFor(this)">
+            <select class="transport-mode" onchange="toggleTransportConfigFor(this)">
                 <option value="no">無（0元）</option>
                 <option value="yes">有（計算里程或自訂）</option>
             </select>
@@ -935,7 +935,7 @@ function updateTransportFeeFor(kmInput) {
 
 function resetTransportEntries() {
     document.querySelectorAll('.transport-entry').forEach(entry => {
-        const select = entry.querySelector('select');
+        const select = entry.querySelector('.transport-mode');
         select.value = 'no';
         entry.querySelector('.transport-km-group').classList.add('hidden');
         entry.querySelector('.transport-km').value = '';
@@ -1039,6 +1039,38 @@ function renderSchedule() {
     document.getElementById('schedule-container').style.display = 'block';
     document.getElementById('resultArea').innerHTML = '';
     document.getElementById('quoteStaleNotice').style.display = 'none';
+    updateDayCaretakerSelectors();
+}
+
+// 取得目前貓咪名字對應的管理師費率（僅回傳有填管理師姓名且費用 > 0 的項目）
+function getCurrentCatFees() {
+    const val = document.getElementById('catNames').value.replace(/\s/g, '').trim();
+    const cat = _cats.find(c => c.name === val);
+    return cat && cat.fees ? cat.fees.filter(f => f.caretaker && f.fee > 0) : [];
+}
+
+// 只有一隻貓、且有 2 位以上不同管理師費率時，才在每日列顯示「當天負責管理師」選單；
+// 其餘情況維持原本行為（不顯示選單，交通費沿用單一費率 × 全期趟數）。
+function updateDayCaretakerSelectors() {
+    const caretakerFees = getCurrentCatFees();
+    const rows = document.querySelectorAll('#day-list .day-row');
+    rows.forEach(row => {
+        let sel = row.querySelector('.day-caretaker');
+        if (caretakerFees.length >= 2) {
+            if (!sel) {
+                sel = document.createElement('select');
+                sel.className = 'day-caretaker';
+                row.insertBefore(sel, row.querySelector('.day-select'));
+            }
+            const prevValue = sel.value;
+            sel.innerHTML = caretakerFees.map(f =>
+                `<option value="${escapeHtml(f.caretaker)}">${escapeHtml(f.caretaker)}</option>`
+            ).join('');
+            sel.value = caretakerFees.some(f => f.caretaker === prevValue) ? prevValue : caretakerFees[0].caretaker;
+        } else if (sel) {
+            sel.remove();
+        }
+    });
 }
 
 function setMiddleDays(freq) {
@@ -1105,6 +1137,9 @@ function calculate() {
     const buckets = new Map();
     let holidayDays = 0, holidayDates = [], totalTrips = 0, activeDays = 0;
     let grandTotal = 0;
+    // 依「當天負責管理師」分組的趟數，讓每位管理師的交通費只算自己實際去的天數，避免疊加
+    const tripsByCaretaker = {};
+    let hasDayCaretakers = false;
 
     rows.forEach(row => {
         const freq = parseInt(row.querySelector('.day-select').value);
@@ -1140,9 +1175,30 @@ function calculate() {
         }
 
         totalTrips += freq;
+
+        const caretakerSel = row.querySelector('.day-caretaker');
+        if (caretakerSel) {
+            hasDayCaretakers = true;
+            tripsByCaretaker[caretakerSel.value] = (tripsByCaretaker[caretakerSel.value] || 0) + freq;
+        }
     });
 
-    transportEntries.forEach(e => { if (e.fee > 0) grandTotal += e.fee * totalTrips; });
+    if (hasDayCaretakers) {
+        const activeEntries = transportEntries.filter(e => e.fee > 0);
+        if (activeEntries.length > 1 && activeEntries.some(e => !e.label)) {
+            alert('已設定多位管理師的每日負責人，每一筆交通費都必須填寫「誰的交通費」對應管理師姓名，請確認後再產生報價');
+            return;
+        }
+        const unmatched = activeEntries.find(e => e.label && !(e.label in tripsByCaretaker));
+        if (unmatched) {
+            alert(`交通費「誰的交通費」欄位「${unmatched.label}」與每日管理師選單的名字不一致，請確認後再產生報價`);
+            return;
+        }
+    }
+    // 沒有指定當天管理師時（單一管理師費率），維持原本「單一交通費率 × 全期趟數」的算法
+    const transportTripsFor = e => (hasDayCaretakers && e.label) ? (tripsByCaretaker[e.label] || 0) : totalTrips;
+
+    transportEntries.forEach(e => { if (e.fee > 0) grandTotal += e.fee * transportTripsFor(e); });
 
     if (catCount > 1 && activeDays > 0) grandTotal += MULTI_CAT_FEE * activeDays * (catCount - 1);
     if (discountFee > 0) grandTotal -= discountFee;
@@ -1187,8 +1243,10 @@ function calculate() {
         html += quoteRowHtml('多貓加價', `第二隻起，每日每隻 $${MULTI_CAT_FEE.toLocaleString()}`, `${activeDays} 天`,
             MULTI_CAT_FEE * activeDays * (catCount - 1), `共 ${catCount} 隻貓`);
     transportEntries.forEach(e => {
-        if (e.fee > 0)
-            html += quoteRowHtml('交通費', `每趟 $${e.fee.toLocaleString()}`, `${totalTrips} 趟`, e.fee * totalTrips, e.label);
+        if (e.fee > 0) {
+            const trips = transportTripsFor(e);
+            html += quoteRowHtml('交通費', `每趟 $${e.fee.toLocaleString()}`, `${trips} 趟`, e.fee * trips, e.label);
+        }
     });
     if (extraFee > 0)
         html += quoteRowHtml('補收費用', '單次', '1 次', extraFee, extraDesc || '無說明');
@@ -1350,6 +1408,7 @@ window.onload = async function () {
         const activeFees = cat && cat.fees ? cat.fees.filter(f => f.fee > 0) : [];
         _currentCatFees = activeFees;
         resetTransportEntries();
+        updateDayCaretakerSelectors();
 
         if (!activeFees.length) {
             reminder.style.display = 'none';
@@ -1362,7 +1421,7 @@ window.onload = async function () {
             // 單筆費用：直接帶入第一筆 transport entry
             const entries = document.querySelectorAll('.transport-entry');
             const entry = entries[0];
-            const select = entry.querySelector('select');
+            const select = entry.querySelector('.transport-mode');
             select.value = 'yes';
             toggleTransportConfigFor(select);
             entry.querySelector('.transport-fee').value = activeFees[0].fee;
@@ -1379,7 +1438,7 @@ window.onload = async function () {
         const match = _currentCatFees.find(f => f.caretaker === name);
         if (!match) return;
         const entry = e.target.closest('.transport-entry');
-        const select = entry.querySelector('select');
+        const select = entry.querySelector('.transport-mode');
         select.value = 'yes';
         toggleTransportConfigFor(select);
         entry.querySelector('.transport-fee').value = match.fee;
