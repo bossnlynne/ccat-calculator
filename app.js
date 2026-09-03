@@ -894,11 +894,13 @@ function addTransportEntry() {
     card.querySelector('.transport-tier-note').textContent =
         `規則：10km內 $${t.base} ／ 10km起 $${t.t10} ／ 15km起 $${t.t15} ／ 20km起 $${t.t20}`;
     _updateDeleteButtons();
+    updateDayCaretakerSelectors();
 }
 
 function removeTransportEntry(btn) {
     btn.closest('.transport-entry').remove();
     _updateDeleteButtons();
+    updateDayCaretakerSelectors();
 }
 
 function _updateDeleteButtons() {
@@ -920,6 +922,7 @@ function toggleTransportConfigFor(select) {
         entry.querySelector('.transport-km').value = '';
         feeInput.value = 0;
     }
+    updateDayCaretakerSelectors();
 }
 
 function updateTransportFeeFor(kmInput) {
@@ -931,6 +934,7 @@ function updateTransportFeeFor(kmInput) {
     else if (km >= 15) fee = t.t15;
     else if (km >= 10) fee = t.t10;
     kmInput.closest('.transport-entry').querySelector('.transport-fee').value = fee;
+    updateDayCaretakerSelectors();
 }
 
 function resetTransportEntries() {
@@ -949,6 +953,15 @@ function getTransportEntries() {
         fee: parseInt(e.querySelector('.transport-fee').value) || 0,
         label: e.querySelector('.transport-label').value.trim(),
     }));
+}
+
+// 目前「已填費用且已填管理師姓名」的交通費項目，依卡片順序回傳去重後的姓名清單
+function getActiveTransportCaretakers() {
+    const names = [];
+    getTransportEntries().forEach(e => {
+        if (e.fee > 0 && e.label && !names.includes(e.label)) names.push(e.label);
+    });
+    return names;
 }
 
 // =============================================
@@ -1016,22 +1029,24 @@ function renderSchedule() {
         const row = document.createElement('div');
         row.className = 'day-row';
         row.innerHTML = `
-            <div class="day-label">
-                ${dateStr}（${weekDay}）${tagHtml}
-                <input type="hidden" class="date-val" value="${ymd}">
-                <input type="hidden" class="is-special" value="${isSpec}">
-                <input type="hidden" class="is-holiday" value="${isHol}">
-                <input type="hidden" class="rate-period-name" value="${escapeHtml(isSpec ? '春節費率' : rp.name)}">
-                <input type="hidden" class="rate1" value="${opts[0]}">
-                <input type="hidden" class="rate2" value="${opts[1]}">
-                <input type="hidden" class="rate3" value="${opts[2]}">
+            <div class="day-row-main">
+                <div class="day-label">
+                    ${dateStr}（${weekDay}）${tagHtml}
+                    <input type="hidden" class="date-val" value="${ymd}">
+                    <input type="hidden" class="is-special" value="${isSpec}">
+                    <input type="hidden" class="is-holiday" value="${isHol}">
+                    <input type="hidden" class="rate-period-name" value="${escapeHtml(isSpec ? '春節費率' : rp.name)}">
+                    <input type="hidden" class="rate1" value="${opts[0]}">
+                    <input type="hidden" class="rate2" value="${opts[1]}">
+                    <input type="hidden" class="rate3" value="${opts[2]}">
+                </div>
+                <select class="day-select">
+                    <option value="0">0 次 ($0)</option>
+                    <option value="1" selected>1 次 ($${opts[0]})</option>
+                    <option value="2">2 次 ($${opts[1]})</option>
+                    <option value="3">3 次 ($${opts[2]})</option>
+                </select>
             </div>
-            <select class="day-select">
-                <option value="0">0 次 ($0)</option>
-                <option value="1" selected>1 次 ($${opts[0]})</option>
-                <option value="2">2 次 ($${opts[1]})</option>
-                <option value="3">3 次 ($${opts[2]})</option>
-            </select>
         `;
         listDiv.appendChild(row);
     });
@@ -1042,41 +1057,113 @@ function renderSchedule() {
     updateDayCaretakerSelectors();
 }
 
-// 取得目前貓咪名字對應的管理師費率（僅回傳有填管理師姓名且費用 > 0 的項目）
-function getCurrentCatFees() {
-    const val = document.getElementById('catNames').value.replace(/\s/g, '').trim();
-    const cat = _cats.find(c => c.name === val);
-    return cat && cat.fees ? cat.fees.filter(f => f.caretaker && f.fee > 0) : [];
-}
-
-// 只有一隻貓、且有 2 位以上不同管理師費率時，才在每日列顯示「當天負責管理師」選單；
-// 其餘情況維持原本行為（不顯示選單，交通費沿用單一費率 × 全期趟數）。
+// 只有存在 2 筆以上「已填費用且已填管理師姓名」的交通費項目時，
+// 才在每日列顯示「當天負責管理師」選單；否則移除選單，維持原本行為
+// （交通費沿用單一費率 × 全期趟數）。選單預設值取第一筆輸入的管理師姓名。
+// 若當天次數 ≥ 2，另外提供「分開」按鈕，可展開成每一趟各自選管理師。
 function updateDayCaretakerSelectors() {
-    const caretakerFees = getCurrentCatFees();
+    const caretakers = getActiveTransportCaretakers();
     const rows = document.querySelectorAll('#day-list .day-row');
     rows.forEach(row => {
-        let sel = row.querySelector('.day-caretaker');
-        if (caretakerFees.length >= 2) {
-            if (!sel) {
-                sel = document.createElement('select');
-                sel.className = 'day-caretaker';
-                row.insertBefore(sel, row.querySelector('.day-select'));
-            }
-            const prevValue = sel.value;
-            sel.innerHTML = caretakerFees.map(f =>
-                `<option value="${escapeHtml(f.caretaker)}">${escapeHtml(f.caretaker)}</option>`
-            ).join('');
-            sel.value = caretakerFees.some(f => f.caretaker === prevValue) ? prevValue : caretakerFees[0].caretaker;
-        } else if (sel) {
-            sel.remove();
+        const freq = parseInt(row.querySelector('.day-select').value) || 0;
+        let group  = row.querySelector('.day-caretaker-group');
+        let visits = row.querySelector('.day-caretaker-visits');
+
+        if (caretakers.length < 2) {
+            if (group) group.remove();
+            if (visits) visits.remove();
+            return;
+        }
+
+        if (!group) {
+            group = document.createElement('div');
+            group.className = 'day-caretaker-group';
+            group.innerHTML = `
+                <select class="day-caretaker"></select>
+                <button type="button" class="day-caretaker-toggle" onclick="toggleDayCaretakerExpand(this)">分開</button>
+            `;
+            row.querySelector('.day-row-main').insertBefore(group, row.querySelector('.day-select'));
+        }
+        if (!visits) {
+            visits = document.createElement('div');
+            visits.className = 'day-caretaker-visits hidden';
+            row.appendChild(visits);
+        }
+
+        const sel = group.querySelector('.day-caretaker');
+        const prevValue = sel.value;
+        sel.innerHTML = caretakers.map(name =>
+            `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`
+        ).join('');
+        sel.value = caretakers.includes(prevValue) ? prevValue : caretakers[0];
+
+        const toggleBtn = group.querySelector('.day-caretaker-toggle');
+        const isExpanded = !visits.classList.contains('hidden');
+
+        if (freq < 2) {
+            toggleBtn.style.display = 'none';
+            if (isExpanded) collapseDayCaretaker(row);
+        } else {
+            toggleBtn.style.display = '';
+            if (isExpanded) renderDayCaretakerVisits(row, caretakers);
         }
     });
+}
+
+// 展開每日次數各自的管理師選單，每一趟預設沿用當天選定的管理師，
+// 若已展開過則保留原本每趟的選擇（除非該選擇已不在有效管理師名單中）。
+function renderDayCaretakerVisits(row, caretakers) {
+    const freq = parseInt(row.querySelector('.day-select').value) || 0;
+    const visits = row.querySelector('.day-caretaker-visits');
+    const dayDefault = row.querySelector('.day-caretaker').value;
+    const existing = Array.from(visits.querySelectorAll('.day-caretaker-visit')).map(s => s.value);
+    const rowsHtml = [];
+    for (let i = 0; i < freq; i++) {
+        const prev = existing[i];
+        const val = caretakers.includes(prev) ? prev : dayDefault;
+        rowsHtml.push(`
+            <div class="day-caretaker-visit-row">
+                <span>第${i + 1}趟</span>
+                <select class="day-caretaker-visit">
+                    ${caretakers.map(name =>
+                        `<option value="${escapeHtml(name)}" ${name === val ? 'selected' : ''}>${escapeHtml(name)}</option>`
+                    ).join('')}
+                </select>
+            </div>
+        `);
+    }
+    visits.innerHTML = rowsHtml.join('');
+}
+
+function collapseDayCaretaker(row) {
+    const sel = row.querySelector('.day-caretaker');
+    const visits = row.querySelector('.day-caretaker-visits');
+    const toggleBtn = row.querySelector('.day-caretaker-toggle');
+    if (sel) sel.classList.remove('hidden');
+    if (visits) { visits.classList.add('hidden'); visits.innerHTML = ''; }
+    if (toggleBtn) toggleBtn.textContent = '分開';
+}
+
+function toggleDayCaretakerExpand(btn) {
+    const row = btn.closest('.day-row');
+    const sel = row.querySelector('.day-caretaker');
+    const visits = row.querySelector('.day-caretaker-visits');
+    if (visits.classList.contains('hidden')) {
+        renderDayCaretakerVisits(row, getActiveTransportCaretakers());
+        visits.classList.remove('hidden');
+        sel.classList.add('hidden');
+        btn.textContent = '收合';
+    } else {
+        collapseDayCaretaker(row);
+    }
+    invalidateQuote();
 }
 
 function setMiddleDays(freq) {
     const selects = document.querySelectorAll('.day-select');
     if (selects.length <= 2) { alert('天數太少，沒有中間日期可修改'); return; }
     for (let i = 1; i < selects.length - 1; i++) selects[i].value = freq;
+    updateDayCaretakerSelectors();
 }
 
 // =============================================
@@ -1140,6 +1227,8 @@ function calculate() {
     // 依「當天負責管理師」分組的趟數，讓每位管理師的交通費只算自己實際去的天數，避免疊加
     const tripsByCaretaker = {};
     let hasDayCaretakers = false;
+    // 報價明細用的「每天負責管理師」文字列表，展開日期會拆成每一趟各一行
+    const caretakerSchedule = [];
 
     rows.forEach(row => {
         const freq = parseInt(row.querySelector('.day-select').value);
@@ -1179,7 +1268,25 @@ function calculate() {
         const caretakerSel = row.querySelector('.day-caretaker');
         if (caretakerSel) {
             hasDayCaretakers = true;
-            tripsByCaretaker[caretakerSel.value] = (tripsByCaretaker[caretakerSel.value] || 0) + freq;
+            const visits = row.querySelector('.day-caretaker-visits');
+            const visitSelects = visits && !visits.classList.contains('hidden')
+                ? Array.from(visits.querySelectorAll('.day-caretaker-visit'))
+                : null;
+            const shortDate = fmtRange(ymd, ymd);
+            if (visitSelects && visitSelects.length) {
+                // 已展開：同一天的每一趟各自記到自己選的管理師名下
+                visitSelects.forEach(vs => {
+                    tripsByCaretaker[vs.value] = (tripsByCaretaker[vs.value] || 0) + 1;
+                });
+                caretakerSchedule.push(`${shortDate}（${visitSelects.length}趟）`);
+                visitSelects.forEach((vs, i) => caretakerSchedule.push(`${shortDate}-${i + 1}：${vs.value}`));
+            } else {
+                // 未展開：整天次數都算給同一位管理師
+                tripsByCaretaker[caretakerSel.value] = (tripsByCaretaker[caretakerSel.value] || 0) + freq;
+                caretakerSchedule.push(freq > 1
+                    ? `${shortDate}（${freq}趟）：${caretakerSel.value}`
+                    : `${shortDate}：${caretakerSel.value}`);
+            }
         }
     });
 
@@ -1260,6 +1367,15 @@ function calculate() {
             </tr>
             </tbody></table>
     `;
+
+    if (hasDayCaretakers && caretakerSchedule.length) {
+        html += `
+            <div class="quote-caretaker-schedule">
+                <div class="quote-caretaker-schedule-title">管理師出勤明細</div>
+                <div class="quote-caretaker-schedule-body">${caretakerSchedule.map(escapeHtml).join('<br>')}</div>
+            </div>
+        `;
+    }
 
     document.getElementById('resultArea').innerHTML = html;
     document.getElementById('actionButtons').style.display = 'flex';
@@ -1430,18 +1546,29 @@ window.onload = async function () {
         // 多筆：等使用者輸入管理師名字後再帶入（由 transport-label input 事件處理）
     });
 
-    // 管理師名字輸入時，比對貓咪費用自動帶入
     document.getElementById('transportList').addEventListener('input', function(e) {
-        if (!e.target.classList.contains('transport-label')) return;
-        if (!_currentCatFees.length) return;
-        const name = e.target.value.trim();
-        const match = _currentCatFees.find(f => f.caretaker === name);
-        if (!match) return;
-        const entry = e.target.closest('.transport-entry');
-        const select = entry.querySelector('.transport-mode');
-        select.value = 'yes';
-        toggleTransportConfigFor(select);
-        entry.querySelector('.transport-fee').value = match.fee;
+        if (e.target.classList.contains('transport-label')) {
+            // 管理師名字輸入時，比對貓咪費用自動帶入
+            if (_currentCatFees.length) {
+                const name = e.target.value.trim();
+                const match = _currentCatFees.find(f => f.caretaker === name);
+                if (match) {
+                    const entry = e.target.closest('.transport-entry');
+                    const select = entry.querySelector('.transport-mode');
+                    select.value = 'yes';
+                    toggleTransportConfigFor(select);
+                    entry.querySelector('.transport-fee').value = match.fee;
+                }
+            }
+            updateDayCaretakerSelectors();
+        } else if (e.target.classList.contains('transport-fee')) {
+            updateDayCaretakerSelectors();
+        }
+    });
+
+    // 每日次數變更時，重新檢查是否要顯示「分開」按鈕與每趟管理師選單
+    document.getElementById('day-list').addEventListener('change', function(e) {
+        if (e.target.classList.contains('day-select')) updateDayCaretakerSelectors();
     });
 
     document.getElementById('tab-calc').addEventListener('input', invalidateQuote);

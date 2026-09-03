@@ -91,6 +91,9 @@ button { font-family: inherit; cursor: pointer; }
 .quote-meta { display:grid;grid-template-columns:1fr 1fr;gap:9px 24px;margin:0 0 20px;padding:0 2px 16px;border-bottom:1px solid #DED5CA;font-size:14px; }
 .quote-meta strong { color:#5C4A42; }
 .quote-title { color:#2D2116;text-align:left;font-size:20px;font-weight:700;padding:4px 2px 14px;margin-bottom:16px;border-bottom:2px solid #7B5E52;letter-spacing:.04em; }
+.quote-caretaker-schedule { margin: 14px 0 0; padding: 12px 14px; border: 1px solid #DED5CA; border-radius: 8px; background: #FBF5EC; font-size: 13px; line-height: 1.7; }
+.quote-caretaker-schedule-title { font-weight: 700; color: #5C4A42; margin-bottom: 6px; }
+.quote-caretaker-schedule-body { color: #5C4A42; }
 .btn-ghost-sm   { background: #F6F0E8; color: #5C4A42; border: 1px solid #C5A882; }
 
 /* Schedule */
@@ -98,11 +101,18 @@ button { font-family: inherit; cursor: pointer; }
 .schedule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .schedule-header h3 { margin: 0; color: #7B5E52; font-size: 1em; }
 .quick-btn-group { display: flex; gap: 6px; }
-.day-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #C5A882; }
+.day-row { padding: 9px 0; border-bottom: 1px solid #C5A882; }
 .day-row:last-child { border-bottom: none; }
+.day-row-main { display: flex; align-items: center; justify-content: space-between; }
 .day-label { font-weight: 600; color: #5C4A42; width: 180px; font-size: 0.95em; }
 .day-select { flex: 1; max-width: 200px; }
-.day-caretaker { flex: 1; max-width: 160px; margin-right: 8px; }
+.day-caretaker-group { display: flex; align-items: center; gap: 6px; flex: 1; max-width: 220px; margin-right: 8px; }
+.day-caretaker { flex: 1; max-width: 160px; }
+.day-caretaker-toggle { flex-shrink: 0; font-size: 0.78em; padding: 3px 8px; border-radius: 5px; border: 1px solid #C5A882; background: #F6F0E8; color: #5C4A42; white-space: nowrap; }
+.day-caretaker-visits { margin-top: 6px; padding-left: 4px; display: flex; flex-direction: column; gap: 5px; }
+.day-caretaker-visit-row { display: flex; align-items: center; gap: 8px; font-size: 0.85em; color: #5C4A42; }
+.day-caretaker-visit-row span { width: 45px; flex-shrink: 0; }
+.day-caretaker-visit-row select { flex: 1; max-width: 160px; }
 .tag { font-size: 0.78em; font-weight: 700; margin-left: 5px; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
 .tag-holiday { color: #5C4A42; background: #E8D5B7; }
 .tag-special  { color: #fff; background: #7B5E52; }
@@ -250,10 +260,12 @@ th, td { border: none; border-bottom: 1px solid #DED5CA; padding: 11px 10px; tex
     .tabs { margin: 0 -16px; padding: 0 16px; }
     .flex-row { flex-direction: column; gap: 0; }
     .flex-row .input-group { margin-bottom: 14px; }
-    .day-row { flex-direction: column; align-items: flex-start; gap: 5px; }
+    .day-row-main { flex-direction: column; align-items: flex-start; gap: 5px; }
     .day-label { width: 100%; }
     .day-select { max-width: 100%; width: 100%; }
-    .day-caretaker { max-width: 100%; width: 100%; margin-right: 0; }
+    .day-caretaker-group { max-width: 100%; width: 100%; margin-right: 0; }
+    .day-caretaker { max-width: 100%; }
+    .day-caretaker-visit-row select { max-width: 100%; }
     .schedule-header { flex-direction: column; align-items: flex-start; gap: 8px; }
     .quick-btn-group { width: 100%; }
     .btn-outline { flex: 1; text-align: center; }
